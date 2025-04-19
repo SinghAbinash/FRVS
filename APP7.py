@@ -37,12 +37,10 @@ from datetime import datetime, timedelta
 from sklearn.neighbors import KNeighborsClassifier
 from win32com.client import Dispatch
 from datetime import datetime, timedelta
-import io
-import dlib
 from pkg_resources import resource_filename
 import re
 import base64
-import uuid
+
 import bz2
 import requests
 import sys
