@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Host Login - FRVS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <style>
+        :root {
+            --primary-color: #1a237e;
+            --secondary-color: #283593;
+            --accent-color: #90caf9;
+            --gradient-start: #e3f2fd;
+            --gradient-end: #90caf9;
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --shadow-color: rgba(26, 35, 126, 0.1);
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--gradient-start), #bbdefb, var(--gradient-end));
+            display: grid;
+            place-items: center;
+            margin: 0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            color: #1e293b;
+            padding: 1rem;
+        }
+
+        .host-container {
+            width: 100%;
+            max-width: 510px;
+            perspective: 1000px;
+        }
+
+        .host-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 1.5rem 2rem;
+            box-shadow: 0 8px 32px var(--shadow-color);
+            backdrop-filter: blur(10px);
+            transform-style: preserve-3d;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .host-card:hover {
+            box-shadow: 0 12px 40px var(--shadow-color);
+        }
+
+        .host-header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+            transform: translateZ(20px);
+        }
+
+        .host-header i{
+            font-size: 3rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .host-title {
+            color: var(--primary-color);
+            font-size: 1.7rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .input-group {
+            background: white;
+            border: 2px solid #e3f2fd;
+            border-radius: 10px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            margin-bottom: 1rem;
+        }
+
+        .input-group:hover {
+            border-color: var(--accent-color);
+            box-shadow: 0 4px 12px var(--shadow-color);
+        }
+
+        .input-group:focus-within {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px var(--shadow-color);
+        }
+
+        .input-group-text {
+            color: var(--primary-color);
+        }
+
+        .form-control {
+            border: none;
+            padding: 1rem;
+            background: transparent;
+        }
+
+        .form-control:focus {
+            box-shadow: none;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 0.75rem;
+        }
+
+        .info-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(26, 35, 126, 0.1);
+            border-radius: 20px;
+            font-size: 0.875rem;
+            color: var(--primary-color);
+            margin-top: 0.5rem;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 1rem;
+            border: none;
+            border-radius: 10px;
+            background: var(--primary-color);
+            color: white;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-top: 0.2rem;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            background: var(--secondary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px var(--shadow-color);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--primary-color);
+            text-decoration: none;
+            margin-top: 1rem;
+            margin-bottom: 0.2rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            color: var(--secondary-color);
+            transform: translateX(-5px);
+        }
+
+        .recaptcha-wrapper {
+            display: flex;
+            justify-content: center;
+            margin: 1.5rem 0;
+            transform: translateZ(10px);
+        }
+
+        .flash-messages {
+            margin-bottom: 1rem;
+        }
+
+        .flash-message {
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .flash-message.success {
+            background: rgba(46, 125, 50, 0.1);
+            color: #2e7d32;
+        }
+
+        .flash-message.error {
+            background: rgba(211, 47, 47, 0.1);
+            color: #d32f2f;
+        }
+
+        .alert-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+            z-index: 999;
+        }
+
+        .custom-alert {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+            animation: fadeIn 0.3s ease-out;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .alert-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 1rem;
+        }
+
+        .alert-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            width: 100%;
+        }
+
+        .alert-icon {
+            font-size: 4rem;
+            animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .alert-icon.success { color: var(--primary-color); }
+        .alert-icon.error { color: #d32f2f; }
+
+        .alert-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0;
+            padding: 0.05rem 0;
+        }
+
+        .alert-title.success { color: var(--primary-color); }
+        .alert-title.error { color: #d32f2f; }
+
+        .alert-message {
+            color: #333;
+            font-size: 1.1rem;
+            line-height: 1.5;
+            margin: 0.2rem 0;
+        }
+
+        .alert-button {
+            background: var(--primary-color);
+            color: white;
+            padding: 0.8rem 2rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            max-width: 200px;
+            margin-top: 0;
+        }
+
+        .alert-button:hover {
+            background: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -40%);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%);
+            }
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .fade-out {
+            opacity: 0;
+            transform: translate(-50%, -60%);
+        }
+    </style>
+</head>
+<body>
+    <div id="alertBackdrop" class="alert-backdrop" style="display: none;"></div>
+    <div id="customAlert" class="custom-alert" style="display: none;">
+        <div class="alert-content">
+            <div class="alert-header">
+                <i class="fas alert-icon"></i>
+                <div class="alert-title" id="alertTitle"></div>
+            </div>
+            <div class="alert-message" id="alertMessage"></div>
+            <button onclick="closeAlert()" class="alert-button">OK</button>
+        </div>
+    </div>
+
+    <div class="host-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                <div class="flash-message {{ category }}">
+                    <i class="fas {{ 'fa-check-circle' if category == 'success' else 'fa-exclamation-circle' }}"></i>
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        {% endwith %}
+
+        <div class="host-card">
+            <div class="host-header">
+                <i class="fas fa-user-shield icon-shield"></i>
+                <h1 class="host-title">Create Voting Room</h1>
+            </div>
+
+            <form id="hostLoginForm" action="{{ url_for('host_login') }}" method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                
+                <div class="form-group">
+                    <label class="form-label" for="host_id">Host ID</label>
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="fas fa-fingerprint"></i>
+                        </span>
+                        <input type="text" 
+                               class="form-control" 
+                               id="host_id" 
+                               name="host_id" 
+                               placeholder="Create unique identifier"
+                               pattern="[A-Za-z0-9]+"
+                               minlength="6"
+                               maxlength="12"
+                               required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="election_name">Election Name</label>
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="fas fa-vote-yea"></i>
+                        </span>
+                        <input type="text" 
+                               class="form-control" 
+                               id="election_name" 
+                               name="election_name" 
+                               placeholder="Name your election"
+                               required>
+                    </div>
+                </div>
+
+                <div class="recaptcha-wrapper">
+                    <div class="g-recaptcha" 
+                         data-sitekey="{{ config['RECAPTCHA_SITE_KEY'] }}"
+                         data-callback="enableSubmit"
+                         data-theme="light">
+                    </div>
+                </div>
+
+                <button type="submit" 
+                        class="submit-btn" 
+                        id="submitBtn" 
+                        disabled>
+                    <i class="fas fa-arrow-right-to-bracket me-2"></i>
+                    Launch Voting Room
+                </button>
+            </form>
+
+            <a href="{{ url_for('index') }}" class="back-btn">
+                <i class="fas fa-chevron-left"></i>
+                Return to Home
+            </a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function enableSubmit() {
+            document.getElementById('submitBtn').disabled = false;
+        }
+
+        document.getElementById('hostLoginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if (!grecaptcha.getResponse()) {
+                showAlert('Verification Required', 'Please complete the reCAPTCHA');
+                return;
+            }
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin me-2"></i>Setting Up...';
+
+            try {
+                const formData = new FormData(this);
+                const response = await fetch(this.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert('Success', data.message, 'success');
+                    setTimeout(() => {
+                        window.location.href = data.redirect_url;  // Use redirect_url here
+                    }, 1500);
+                } else {
+                    throw new Error(data.message || 'Failed to create room');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('Error', error.message || 'An unexpected error occurred');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-arrow-right-to-bracket me-2"></i>Launch Voting Room';
+                grecaptcha.reset();
+            }
+        });
+
+        function showAlert(title, message, type = 'error') {
+            const alertBox = document.getElementById('customAlert');
+            const backdrop = document.getElementById('alertBackdrop');
+            const alertIcon = alertBox.querySelector('.alert-icon');
+            const alertTitle = document.getElementById('alertTitle');
+            const alertMessage = document.getElementById('alertMessage');
+            
+            // Reset classes
+            alertIcon.className = 'fas alert-icon';
+            
+            if (type === 'success') {
+                alertIcon.classList.add('fa-circle-check', 'success');
+                alertTitle.textContent = title || 'Success';
+                alertTitle.className = 'alert-title success';
+            } else {
+                alertIcon.classList.add('fa-exclamation-circle', 'error');
+                alertTitle.textContent = title || 'Error';
+                alertTitle.className = 'alert-title error';
+            }
+            
+            alertMessage.textContent = message;
+            
+            backdrop.style.display = 'block';
+            alertBox.style.display = 'block';
+            
+            if (type === 'success') {
+                setTimeout(closeAlert, 3000);
+            }
+        }
+
+        function closeAlert() {
+            const alertBox = document.getElementById('customAlert');
+            const backdrop = document.getElementById('alertBackdrop');
+            
+            alertBox.classList.add('fade-out');
+            backdrop.style.opacity = '0';
+            
+            setTimeout(() => {
+                alertBox.style.display = 'none';
+                backdrop.style.display = 'none';
+                alertBox.classList.remove('fade-out');
+                backdrop.style.opacity = '1';
+            }, 300);
+        }
+    </script>
+</body>
+</html>

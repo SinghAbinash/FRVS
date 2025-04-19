@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voter Login - FRVS</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb, #90caf9);
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 2rem 3rem;  /* Changed top/bottom padding to 2rem */
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(26, 35, 126, 0.1);
+            backdrop-filter: blur(10px);
+            width: 100%;
+            height: 100%;
+            max-height: 550px;
+            max-width: 480px;
+            text-align: center;
+        }
+        .logo-container {
+            display: flex;
+            justify-content: center;
+            margin: 0.25rem 0;  /* Reduced from 0.5rem to 0.25rem */
+        }
+        .logo {
+            width: 170px;
+            height: auto;
+            object-fit: contain;
+            margin-top: -0.5rem;  /* Added negative margin to pull logo up */
+        }
+        h1 {
+            color: #1a237e;
+            margin-bottom: 1rem;
+            font-size: 2rem;
+            font-weight: 600;
+        }
+        .form-section {
+            display: none;
+            margin-bottom: 1rem;
+            width: 100%;
+        }
+        .form-section.active {
+            display: block;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #1a237e;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        input {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid #e3f2fd;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+        input:focus {
+            border-color: #1a237e;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(26, 35, 126, 0.1);
+        }
+        button {
+            background-color: #1a237e;
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            font-weight: 500;
+        }
+        button:hover {
+            background-color: #283593;
+            transform: translateY(-2px);
+        }
+        .video-container {
+            margin: 1rem auto;
+            position: relative;
+            width: 100%;
+            height: 360px;
+            border-radius: 15px;
+            overflow: hidden;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.5; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        #video_feed {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 0.25rem;  /* Reduced from 0.5rem to 0.25rem */
+            margin-bottom: 0.5rem;
+            color: #1a237e;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .messages {
+            margin-bottom: 1rem;
+        }
+        .error {
+            color: #d32f2f;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            text-align: left;
+        }
+        @media (max-width: 576px) {
+            .container {
+                padding: 2rem;
+                margin: 1rem;
+            }
+            .video-container {
+                height: 300px;
+            }
+        }
+        .upload-container {
+            margin: 1rem auto;
+            width: 100%;
+        }
+
+        .upload-preview {
+            margin-top: 1rem;
+            width: 100%;
+            height: 300px;
+            border-radius: 15px;
+            overflow: hidden;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .upload-preview img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        input[type="file"] {
+            padding: 0.8rem;
+            border: 2px dashed #e3f2fd;
+            border-radius: 10px;
+            width: 100%;
+            cursor: pointer;
+            margin-bottom: 1rem;
+        }
+
+        input[type="file"]:hover {
+            border-color: #1a237e;
+        }
+
+        .custom-alert {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+            animation: fadeIn 0.3s ease-out;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .alert-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 1rem;
+        }
+
+        .alert-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            width: 100%;
+        }
+
+        .alert-header i {
+            font-size: 4rem;
+            color: #1a237e;
+            animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        
+
+        .alert-title {
+            color: #1a237e;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        
+
+        .alert-button {
+            background: #1a237e;
+            color: white;
+            padding: 0.8rem 2rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            max-width: 200px;
+            margin-top: 0;
+        }
+
+        .alert-button:hover {
+            background: #283593;
+            transform: translateY(-2px);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -40%);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%);
+            }
+        }
+
+        .alert-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+            z-index: 999;
+        }
+
+        /* Add styles for stacked alerts */
+        .custom-alert + .custom-alert {
+            margin-top: calc(1rem + 20px);
+        }
+
+       
+
+        @keyframes bounceIn {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes progressSlide {
+            from { width: 100%; }
+            to { width: 0%; }
+        }
+
+        .custom-alert {
+            transition: all 0.3s ease-in-out;
+        }
+
+        .fade-out {
+            opacity: 0;
+            transform: translate(-50%, -60%);
+        }
+
+        /* Success Alert Styles */
+        .alert-content.success {
+        
+            border-left: 4px solid #1a237e;
+            padding: 2rem;
+            transform: scale(1);
+            animation: popIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .success-icon {
+            color: #1a237e;
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .alert-title.success {
+            color: #1a237e;
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0;  /* Remove all margins */
+            padding-top: 0.05rem;  /* Add minimal padding instead */
+            padding-bottom: 0.05rem;
+        }
+
+        .alert-title.error {
+            color: #1a237e;  /* Changed to error red */
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0;  /* Remove all margins */
+            padding-top: 0.05rem;  /* Add minimal padding instead */
+            padding-bottom: 0.05rem;
+        }
+
+        .alert-message.success, 
+        .alert-message-error {
+            margin: 0.1rem 0;  /* Minimal vertical margin */
+            padding: 0.05rem 0;  /* Minimal vertical padding */
+            line-height: 1.3;  /* Slightly reduce line height */
+        }
+
+        .alert-message.success {
+            color: #283593;
+            font-size: 1.1rem;
+            line-height: 1.5;
+            margin-top: 0.2rem;
+            margin-bottom: 0.2rem;
+        }
+
+        .alert-message-error {
+            color: #333;
+            font-size: 1rem;
+            line-height: 1.5;
+            margin-top: 0.2rem;
+            margin-bottom: 0.2rem;
+        }
+
+        
+
+        .custom-alert.success-alert {
+            transform-origin: center;
+            animation: floatIn 0.5s ease-out;
+        }
+
+       
+        .alert-backdrop.success {
+            backdrop-filter: blur(8px);
+            background: rgba(26, 35, 126, 0.1);
+            transition: all 0.3s ease;
+        }
+
+      
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo-container" id="logoContainer">
+            <img src="{{ url_for('static', filename='vote.png') }}" alt="Vote Image" class="logo" id="voteLogo">
+        </div>
+
+
+        <!-- Initial Login Form -->
+        <div id="loginForm" class="form-section active">
+            <form action="{{ url_for('voter_login') }}" method="POST" id="voterLoginForm">
+                <div class="form-group">
+                    <label for="name">Full Name (in CAPS)</label>
+                    <input type="text" id="name" name="name" required pattern="[A-Z\s]+" 
+                           placeholder="Enter your name in CAPS">
+                </div>
+                <div class="form-group">
+                    <label for="aadhar">Aadhar Number</label>
+                    <input type="text" 
+                           id="aadhar" 
+                           name="aadhar" 
+                           required 
+                           pattern="\d{12}"
+                           maxlength="12"
+                           placeholder="Enter 12-digit Aadhar number"
+                           oninput="this.value = this.value.replace(/\D/g, '').substring(0, 12)">
+                </div>
+                <div class="form-group">
+                    <label for="room_id">Room ID</label>
+                    <input type="text" id="room_id" name="room_id" required pattern="[A-Z0-9]+" 
+                           placeholder="Enter Room ID">
+                </div>
+                <button type="submit">Continue to Face Registration</button>
+            </form>
+        </div>
+
+        <!-- Face Registration Form -->
+        <div id="faceRegForm" class="form-section">
+            <div class="upload-container">
+                <form action="{{ url_for('process_id_card') }}" method="POST" id="idCardForm" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="name" id="hiddenName">
+                    <input type="hidden" name="aadhar" id="hiddenAadhar">
+                    <input type="hidden" name="room_id" id="hiddenRoomId">
+                    
+                    <!-- Update the file input section -->
+                    <div class="form-group">
+                        <label for="id_card">Upload ID Card Image (Max 50MB)</label>
+                        <input type="file" 
+                               id="id_card" 
+                               name="id_card" 
+                               accept="image/*" 
+                               required
+                               class="form-control">
+                        <div class="upload-preview">
+                            <img id="preview" src="" alt="ID Card Preview" style="display: none;">
+                        </div>
+                    </div>
+                    <button type="submit" id="processBtn">Process ID Card</button>
+                </form>
+            </div>
+        </div>
+
+        <a href="{{ url_for('index') }}" class="back-link" id="backLink">
+            <i class="fas fa-arrow-left"></i> Back to Home
+        </a>
+    </div>
+
+    <!-- Replace the existing alert elements with this single unified alert system -->
+    <div id="alertBackdrop" class="alert-backdrop" style="display: none;"></div>
+    <div id="customAlert" class="custom-alert" style="display: none;">
+        <div class="alert-content">
+            <div class="alert-header">
+                <i class="fas alert-icon"></i>
+                <div class="alert-title" id="alertTitle"></div>
+            </div>
+            <div class="alert-message" id="alertMessage"></div>
+            <button onclick="closeAlert()" class="alert-button">OK</button>
+        </div>
+    </div>
+
+    <script>
+        // Update the voter login form submit handler
+        document.getElementById('voterLoginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Validate Aadhar number
+            const aadharInput = document.getElementById('aadhar');
+            const cleanAadhar = aadharInput.value.replace(/\s/g, '');
+            if (!/^\d{12}$/.test(cleanAadhar)) {
+                aadharInput.setCustomValidity('Please enter a valid 12-digit Aadhar number');
+                return;
+            }
+            
+            // Get form values
+            const name = document.getElementById('name').value;
+            const roomId = document.getElementById('room_id').value;
+
+            // Set hidden field values
+            document.getElementById('hiddenName').value = name;
+            document.getElementById('hiddenAadhar').value = cleanAadhar;
+            document.getElementById('hiddenRoomId').value = roomId;
+
+            // Hide logo container and back link
+            document.getElementById('logoContainer').style.display = 'none';
+            document.getElementById('backLink').style.display = 'none';
+
+            // Switch forms
+            document.getElementById('loginForm').classList.remove('active');
+            document.getElementById('faceRegForm').classList.add('active');
+        });
+
+        // Preview uploaded image
+        document.getElementById('id_card').addEventListener('change', function(e) {
+            const preview = document.getElementById('preview');
+            const file = e.target.files[0];
+            
+            if (file) {
+                if (file.size > 50 * 1024 * 1024) { // 50MB in bytes
+                    showAlert('File size must be less than 50MB', 'Warning');  // Changed from alert()
+                    this.value = '';
+                    preview.style.display = 'none';
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    // Store image data in session storage
+                    sessionStorage.setItem('idCardImage', e.target.result);
+                    
+                    // Show preview
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        
+
+        // Format Aadhar number
+        document.getElementById('aadhar').addEventListener('input', function(e) {
+            // Remove any non-digits
+            let value = e.target.value.replace(/\D/g, '');
+            
+            // Limit to 12 digits
+            if (value.length > 12) {
+                value = value.slice(0, 12);
+            }
+            
+            // Update the input value
+            e.target.value = value;
+            
+            // Validate the input
+            if (value.length === 12) {
+                this.setCustomValidity('');
+            } else {
+                this.setCustomValidity('Please enter exactly 12 digits');
+            }
+        });
+
+        // Update form submission
+        document.getElementById('voterLoginForm').addEventListener('submit', function(e) {
+            const aadharInput = document.getElementById('aadhar');
+            if (aadharInput.value.length !== 12) {
+                e.preventDefault();
+                alert('Please enter exactly 12 digits for Aadhar number');
+            }
+        });
+
+        // Update form submission to remove spaces before sending
+        document.getElementById('voterLoginForm').addEventListener('submit', function(e) {
+            const aadharInput = document.getElementById('aadhar');
+            const hiddenAadhar = document.getElementById('hiddenAadhar');
+            // Remove spaces when setting the hidden field value
+            hiddenAadhar.value = aadharInput.value.replace(/\s/g, '');
+        });
+
+        // Update form submission handler
+        document.getElementById('voterLoginForm').addEventListener('submit', function(e) {
+            const aadharInput = document.getElementById('aadhar');
+            const hiddenAadhar = document.getElementById('hiddenAadhar');
+            
+            // Remove spaces and validate
+            const cleanAadhar = aadharInput.value.replace(/\s/g, '');
+            if (!/^\d{12}$/.test(cleanAadhar)) {
+                e.preventDefault();
+                aadharInput.setCustomValidity('Please enter a valid 12-digit Aadhar number');
+                return;
+            }
+            
+            // Set clean value to hidden field
+            hiddenAadhar.value = cleanAadhar;
+        });
+
+        // Custom alert function
+        function showAlert(message, type = 'error') {
+            const alertBox = document.getElementById('customAlert');
+            const backdrop = document.getElementById('alertBackdrop');
+            const alertIcon = alertBox.querySelector('.alert-icon');
+            const alertTitle = document.getElementById('alertTitle');
+            const alertMessage = document.getElementById('alertMessage');
+            
+            // Reset classes
+            alertIcon.className = 'fas alert-icon';
+            
+            if (type === 'success') {
+                // Success styling
+                alertIcon.classList.add('fa-circle-check', 'success');
+                alertTitle.textContent = 'Success';
+                alertTitle.className = 'alert-title success';
+            } else {
+                // Error styling
+                alertIcon.classList.add('fa-exclamation-circle', 'error');
+                alertTitle.textContent = 'Error';
+                alertTitle.className = 'alert-title error';
+            }
+            
+            // Set message
+            alertMessage.textContent = message;
+            
+            // Show alert
+            backdrop.style.display = 'block';
+            alertBox.style.display = 'block';
+            
+            // Auto-close success messages
+            if (type === 'success') {
+                setTimeout(() => {
+                    closeAlert();
+                }, 3000);
+            }
+        }
+
+        function closeAlert() {
+            const alerts = document.querySelectorAll('.custom-alert');
+            const backdrop = document.getElementById('alertBackdrop');
+            
+            alerts.forEach(alert => {
+                alert.style.display = 'none';
+            });
+            backdrop.style.display = 'none';
+        }
+
+        // Clean up session storage when leaving the page
+        window.addEventListener('beforeunload', function() {
+            sessionStorage.removeItem('idCardImage');
+        });
+
+        document.getElementById('idCardForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const submitButton = document.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            
+            fetch('/process_id_card', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    showAlert('ID card processed successfully! Redirecting to voting page...', 'success');
+                    
+                    // Redirect after delay
+                    setTimeout(() => {
+                        window.location.href = data.redirect;
+                    }, 3000);
+                } else {
+                    // Show error message
+                    showAlert(data.error, 'error');
+                    submitButton.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('An error occurred while processing the ID card', 'error');
+                submitButton.disabled = false;
+            });
+        });
+
+        // Add this to ensure form fields are populated
+        document.getElementById('idCardForm').addEventListener('submit', function(e) {
+            document.getElementById('hiddenName').value = document.getElementById('name').value;
+            document.getElementById('hiddenAadhar').value = document.getElementById('aadhar').value;
+            document.getElementById('hiddenRoomId').value = '{{ request.args.get("room_id", "") }}';
+        });
+
+        // Add keyboard support for closing alerts
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeAlert();
+            }
+        });
+
+        // Close alert when clicking backdrop
+        document.getElementById('alertBackdrop').addEventListener('click', closeAlert);
+    </script>
+</body>
+</html>

@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Recognition Voting System - Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="bg-gradient">
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top" style="background-color: #1a237e;">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
+                <img src="{{ url_for('static', filename='vote.png') }}" alt="Logo" width="70" class="me-2">
+                <span>Dashboard</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('index') }}">
+                            <i class="fas fa-home me-1"></i> Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#room-login" data-bs-toggle="modal" data-bs-target="#roomLoginModal">
+                            <i class="fas fa-door-open me-1"></i> Room Login
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+
+    <!-- Main Content -->
+    <div class="container mt-3">  <!-- Changed from mt-5 to mt-3 -->
+        {% if session.get('success_message') %}
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                {{ session.pop('success_message') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endif %}
+        <!-- Flash Messages -->
+        <div class="messages">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="{{ category }}">
+                        <p>{{ message }}</p>
+                    </div>
+                {% endfor %}
+            {% endif %}
+            {% endwith %}
+        </div>
+
+        <br>
+        <!-- Welcome Section -->
+        <div class="row justify-content-center">
+            <div class="col-md-8 text-center mb-3">
+                <h2 class="display-4 text-primary mb-4">Welcome to FRVS</h2>
+                <p class="lead text-muted">Choose your role to get started with secure face recognition voting</p>
+            </div>
+        </div>
+
+        <!-- Login Cards Section -->
+        <div class="row justify-content-center g-4 mb-5">
+            <!-- Host Login Card -->
+            <div class="col-md-5">
+                <div class="card login-card equal-height border-0 shadow-lg">
+                    <div class="card-body text-center p-5">
+                        <div class="mb-4">
+                            <i class="fas fa-user-shield fa-4x text-primary"></i>
+                        </div>
+                        <h3 class="card-title mb-4">Host Login</h3>
+                        <p class="card-text mb-4">Create and manage voting rooms, monitor results, and election process.</p>
+                        <a href="{{ url_for('host_login') }}" class="btn btn-primary btn-md custom-login-btn rounded-pill" id="hostLoginBtn">
+                            <i class="fas fa-sign-in-alt me-2"></i>Login as Host
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Voter Login Card -->
+            <div class="col-md-5">
+                <div class="card login-card equal-height border-0 shadow-lg">
+                    <div class="card-body text-center p-5">
+                        <div class="mb-4">
+                            <i class="fas fa-user fa-4x text-secondary"></i>
+                        </div>
+                        <h3 class="card-title mb-4">Voter Login</h3>
+                        <p class="card-text mb-4">Enter a voting room using face recognition and cast your secure vote.</p>
+                        <a href="{{ url_for('voter_login') }}" class="btn btn-secondary btn-md custom-login-btn rounded-pill">
+                            <i class="fas fa-vote-yea me-2"></i>Login as Voter
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- About Section -->
+        <div class="row justify-content-center mb-5">
+            <div class="col-lg-10">
+                <div class="card about-card border-0 shadow-lg">
+                    <div class="card-body p-5">
+                        <h2 class="text-primary mb-4"><i class="fas fa-info-circle me-2"></i>About FRVS</h2>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h4 class="mb-3">What is FRVS?</h4>
+                                <p>Face Recognition Voting System (FRVS) is a cutting-edge platform that combines biometric security with digital voting to ensure fair and transparent elections.</p>
+                                <div class="features mt-4">
+                                    <div class="feature mb-3">
+                                        <i class="fas fa-shield-alt text-primary me-2"></i>
+                                        <span>Secure face recognition authentication</span>
+                                    </div>
+                                    <div class="feature mb-3">
+                                        <i class="fas fa-vote-yea text-primary me-2"></i>
+                                        <span>Real-time vote counting and results</span>
+                                    </div>
+                                    <div class="feature mb-3">
+                                        <i class="fas fa-user-lock text-primary me-2"></i>
+                                        <span>Prevention of duplicate voting</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h4 class="mb-3">How It Works</h4>
+                                <ol class="how-it-works">
+                                    <li class="mb-2">Hosts create secure voting rooms</li>
+                                    <li class="mb-2">Voters register using Aadhar card</li>
+                                    <li class="mb-2">System verifies voter identity</li>
+                                    <li class="mb-2">Secure voting with face recognition</li>
+                                    <li class="mb-2">Real-time result tabulation</li>
+                                </ol>
+                                <a href="#learn-more" class="btn btn-outline-primary mt-3">
+                                    <i class="fas fa-book me-2"></i>Learn More
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Room Login Modal -->
+    <div class="modal fade" id="roomLoginModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-door-open me-2"></i>Room Login
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <!-- Update the room login form -->
+                    <form id="roomLoginForm" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="mb-4">
+                            <label for="host_id" class="form-label">Host ID</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-user-shield"></i>
+                                </span>
+                                <input type="text" 
+                                       class="form-control form-control-lg" 
+                                       id="host_id" 
+                                       name="host_id" 
+                                       required 
+                                       pattern="[A-Za-z0-9]+" 
+                                       placeholder="Enter Host ID"
+                                       minlength="6"
+                                       maxlength="12"
+                                       autocomplete="off">
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="room_id" class="form-label">Room ID</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-key"></i>
+                                </span>
+                                <input type="text" 
+                                       class="form-control form-control-lg" 
+                                       id="room_id" 
+                                       name="room_id" 
+                                       required 
+                                       pattern="[A-Za-z0-9]+" 
+                                       placeholder="Enter Room ID"
+                                       autocomplete="off">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-lg w-100">
+                            <i class="fas fa-sign-in-alt me-2"></i>Join Room
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add this custom CSS -->
+    <style>
+        body {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb, #90caf9);
+            background-color: #e3f2fd; /* Fallback color if gradient fails */
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            height: 60px;
+        }
+
+        .bg-gradient {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb, #90caf9);
+            min-height: 100vh;
+        }
+
+        .login-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            transition: transform 0.3s ease;
+            height: 85%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .login-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .btn-primary {
+            background-color: #1a237e;
+            margin-bottom: 1.5rem;
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background-color: #283593;
+        }
+
+        .btn-secondary {
+            background-color: #0d47a1;
+            margin-bottom: 1.5rem; 
+            border: none;
+        }
+
+        .btn-secondary:hover {
+            background-color: #1565c0;
+        }
+
+        .text-primary {
+            color: #1a237e !important;
+        }
+
+        .text-secondary {
+            color: #0d47a1 !important;
+        }
+
+        .about-card {
+            background: rgba(255, 255, 255, 0.97);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+        }
+
+        .features .feature {
+            font-size: 1.1rem;
+        }
+
+        .how-it-works {
+            font-size: 1.1rem;
+            padding-left: 1.5rem;
+        }
+
+        .how-it-works li {
+            padding: 0.5rem 0;
+        }
+
+        .btn-outline-primary {
+            color: #1a237e;
+            border-color: #1a237e;
+        }
+
+        .btn-outline-primary:hover {
+            background-color: #1a237e;
+            color: white;
+        }
+
+        .navbar {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .modal-content {
+            border-radius: 15px;
+            border: none;
+        }
+
+        .progress {
+            border-radius: 10px;
+            background-color: #e9ecef;
+        }
+
+        .progress-bar {
+            transition: width 1s ease-in-out;
+            text-shadow: 1px 1px 1px rgba(0,0,0,0.2);
+            width: 0;
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            font-weight: 500;
+        }
+
+        .btn-close-white {
+            filter: brightness(0) invert(1);
+        }
+
+        .messages {
+            margin-bottom: 1rem;
+            width: 100%;
+        }
+
+        .messages .error {
+            color: #d32f2f;
+            background: #ffebee;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            text-align: left;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .messages .success {
+            color: #2e7d32;
+            background: #e8f5e9;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            text-align: left;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .messages .warning {
+            color: #f57c00;
+            background: #fff3e0;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            text-align: left;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .messages .info {
+            color: #1565c0;
+            background: #e3f2fd;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            text-align: left;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .messages > div {
+            transition: opacity 0.6s ease-in-out;
+            opacity: 1;
+        }
+        
+        .messages .error,
+        .messages .success,
+        .messages .warning,
+        .messages .info {
+            margin: 10px auto;
+            max-width: 800px;
+            border-left: 4px solid;
+        }
+        
+        .messages .error {
+            border-left-color: #d32f2f;
+        }
+        
+        .messages .success {
+            border-left-color: #2e7d32;
+        }
+        
+        .messages .warning {
+            border-left-color: #f57c00;
+        }
+        
+        .messages .info {
+            border-left-color: #1565c0;
+        }
+
+        .equal-height {
+            min-height: 300px; /* Set a minimum height */
+        }
+
+        .login-card .card-body {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 85%;
+        }
+
+        .login-card .btn {
+            margin-top: auto;
+        }
+
+        .custom-login-btn {
+            width: 220px;           /* Increased from 180px */
+            height: 70px;           /* Increased from 55px */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            padding: 0.75rem 1.5rem;   /* Increased padding */
+            font-size: 1rem;         /* Increased font size */
+            font-weight: 500;          /* Added font weight */
+            text-transform: uppercase; /* Added text transform */
+            letter-spacing: 0.5px;     /* Added letter spacing */
+        }
+
+        .custom-login-btn i {
+            font-size: 1rem;        /* Increased icon size */
+            margin-right: 10px;       /* Added more space between icon and text */
+        }
+
+        /* Add hover effect for better interaction */
+        .custom-login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+   
+    <script>
+        function initializeProgressBars() {
+            const progressBars = document.querySelectorAll('.progress-bar[data-percentage]');
+            progressBars.forEach(bar => {
+                const percentage = bar.getAttribute('data-percentage');
+                requestAnimationFrame(() => {
+                    bar.style.width = `${percentage}%`;
+                });
+            });
+        }
+
+        
+        // Show flash messages with fade
+        document.addEventListener('DOMContentLoaded', function() {
+            const messages = document.querySelectorAll('.messages > div');
+            messages.forEach(msg => {
+                setTimeout(() => {
+                    msg.style.opacity = '0';
+                    setTimeout(() => msg.remove(), 600);
+                }, 5000);
+            });
+        });
+
+        // Add to index.html inside existing script tag
+        document.getElementById('hostLoginBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            window.location.href = "{{ url_for('host_login') }}";
+        });
+
+        // Update the room login form handler
+        document.getElementById('roomLoginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const roomId = document.getElementById('room_id').value.trim();
+            const hostId = document.getElementById('host_id').value.trim();
+            const submitBtn = this.querySelector('button[type="submit"]');
+            
+            if (!roomId || !hostId) {
+                showMessage('Please enter both Room ID and Host ID', 'error');
+                return;
+            }
+            
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Verifying...';
+            
+            try {
+                const formData = new FormData(this);
+                const response = await fetch('/join_room', {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Store room data in localStorage
+                    localStorage.setItem('roomData_' + roomId, JSON.stringify({
+                        room_id: roomId,
+                        host_id: hostId
+                    }));
+                    
+                    // Redirect to voting room
+                    window.location.href = data.redirect;
+                } else {
+                    throw new Error(data.message || 'Failed to join room');
+                }
+            } catch (error) {
+                showMessage(error.message || 'Failed to join room', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i>Join Room';
+            }
+        });
+
+        // Add helper function for showing messages
+        function showMessage(message, type = 'error') {
+            const messagesDiv = document.querySelector('.messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type;
+            messageDiv.innerHTML = `<p>${message}</p>`;
+            
+            messagesDiv.appendChild(messageDiv);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                messageDiv.style.opacity = '0';
+                setTimeout(() => messageDiv.remove(), 600);
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

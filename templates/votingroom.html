@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voting Room Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding-top: 50px; /* Match navbar height */
+            min-height: 100vh;
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb, #90caf9);
+        }
+
+        .navbar {
+            background-color: #1a237e;
+            padding: 0 1.5rem;  /* Reduced padding */
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            height: 60px;  /* Reduced height */
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+
+        .room-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;  /* Reduced gap */
+            height: 100%;
+        }
+
+        .room-id-display {
+            background: rgba(255,255,255,0.1);
+            padding: 0.25rem 0.75rem;  /* Reduced padding */
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;  /* Reduced gap */
+            height: 30px;  /* Fixed height */
+        }
+
+        .host-id-display {
+            background: rgba(255,255,255,0.1);
+            padding: 0.25rem 0.75rem;  /* Reduced padding */
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;  /* Reduced gap */
+            height: 30px;  /* Fixed height */
+        }
+
+        
+
+        .host-id-display span {
+            color: white;
+        }
+
+        .copy-button {
+            background: none;
+            border: none;
+            color: #90caf9;
+            cursor: pointer;
+            padding: 0.25rem;  /* Reduced padding */
+            font-size: 0.9rem;  /* Smaller font */
+            transition: transform 0.3s;
+        }
+
+        .copy-button:hover {
+            transform: scale(1.1);
+        }
+
+        .container {
+            max-width: 1200px; /* Increased from 1000px */
+            margin: 2rem auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(26, 35, 126, 0.1);
+        }
+
+        .candidates-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+            padding: 1rem;
+        }
+
+        .candidate-card {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            transition: all 0.3s ease;
+            border: 2px solid #e3f2fd;
+            position: relative;
+            min-height: 280px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .candidate-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(26, 35, 126, 0.15);
+            border-color: #1a237e;
+        }
+
+        .candidate-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .logo-container {
+            position: relative;
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .logo-container:hover {
+            transform: scale(1.05);
+        }
+
+        
+
+        
+
+        .candidate-name {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid #e3f2fd;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            text-align: center;
+            transition: all 0.3s;
+            background: #f8f9fa;
+        }
+
+        .candidate-name:focus {
+            border-color: #1a237e;
+            outline: none;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(26, 35, 126, 0.1);
+        }
+
+        .add-card {
+            background: linear-gradient(135deg, #f8f9fa, #e3f2fd);
+            border: 2px dashed #1a237e;
+            cursor: pointer;
+            min-height: 280px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .add-card:hover {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(26, 35, 126, 0.15);
+        }
+
+        .add-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            color: #1a237e;
+        }
+
+        .add-content i {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .add-content span {
+            font-size: 1.2rem;
+            font-weight: 500;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .remove-candidate {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #d32f2f;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .candidate-card:hover .remove-candidate {
+            opacity: 1;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .submit-button {
+            flex: 1;
+            padding: 1rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .submit-button {
+            background: #1a237e;
+            color: white;
+        }
+
+        .expire-button {
+            width: 140px;
+            height: 30px;
+            padding: 0 0.75rem;
+            background: #d32f2f;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex; /* Changed from flex to inline-flex */
+            align-items: center;  /* Center vertically */
+            justify-content: center; /* Center horizontally */
+            gap: 0.4rem; /* Reduced gap between icon and text */
+            flex-shrink: 0;
+            line-height: 1; /* Added to ensure text stays centered */
+        }
+
+        /* Add specific styling for the icon */
+        .expire-button i {
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .submit-button:hover, .expire-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .election-title {
+            color: #1a237e;
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 2rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 2px solid #e3f2fd;
+            padding-bottom: 1rem;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(26, 35, 126, 0.15);
+            width: 90%;
+            max-width: 400px;
+        }
+
+        @keyframes modalPop {
+            from { 
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to { 
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .bg-light {
+            background-color: #f5f7fa !important;
+        }
+
+        .ratio-1x1 {
+            aspect-ratio: 1;
+        }
+
+        /* Update the placeholder styles */
+        .placeholder-wrapper {
+            width: 100%;
+            height: 100%;
+            background: white;
+            border-radius: 50%;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .placeholder-icon {
+            font-size: 8rem;
+            color: #1a237e;
+            margin: 0;
+            padding: 0;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .placeholder-wrapper i {
+            color: #1a237e;
+        }
+
+        /* Update the ratio div styles */
+        .ratio.ratio-1x1 {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+
+        /* Add these styles */
+        .popup-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .popup-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(26, 35, 126, 0.15);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .popup-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .popup-icon.warning { color: #f57c00; }
+        .popup-icon.error { color: #d32f2f; }
+        .popup-icon.success { color: #388e3c; }
+        .popup-icon.info { color: #1976d2; }
+
+        .popup-title {
+            color: #1a237e;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .popup-message {
+            color: #666;
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+
+        .popup-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .popup-button {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .popup-button.primary {
+            background: #1a237e;
+            color: white;
+        }
+
+        .popup-button.secondary {
+            background: #e3f2fd;
+            color: #1a237e;
+        }
+
+        .popup-button.danger {
+            background: #d32f2f;
+            color: white;
+        }
+
+        .popup-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .candidate-card input[readonly] {
+            background-color: #f8f9fa;
+            cursor: not-allowed;
+            opacity: 0.8;
+        }
+
+        .candidate-card input[readonly]:focus {
+            border-color: #e3f2fd;
+            box-shadow: none;
+        }
+
+        .candidate-card input[disabled] {
+            cursor: not-allowed;
+        }
+
+        .candidate-card[data-existing="true"] .logo-container {
+            cursor: not-allowed;
+            opacity: 0.8;
+        }
+
+        .results-button , .home-button {
+            width: 120px;
+            height: 30px;
+            padding: 0 0.75rem;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            flex-shrink: 0;
+            line-height: 1;
+            margin-right: -1px;
+        }
+
+
+        .home-button {
+            margin-right: -30px;
+        }
+
+        .results-button i , .home-button i{
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .results-button:hover , .home-button:hover {
+            
+            color: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            text-decoration: none;
+        }
+
+        .nav-buttons {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+       
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="room-info">
+            <div class="room-id-display">
+                <i class="fas fa-door-open"></i>
+                <span id="room-id">{{ room_id }}</span>
+                <button class="copy-button" onclick="copyRoomId()">
+                    <i class="fas fa-copy"></i>
+                </button>
+            </div>
+            <div class="host-id-display">
+                <i class="fas fa-user-shield"></i>
+                <span id="host-id">{{ host_id }}</span>
+                <button class="copy-button" onclick="copyHostId()">
+                    <i class="fas fa-copy"></i>
+                </button>
+            </div>
+        </div>
+        <div class="nav-buttons">
+            <a href="{{ url_for('index') }}" class="home-button">
+                <i class="fas fa-home"></i>
+                Home
+            </a>
+            <a href="{{ url_for('results', room_id=room_id) }}" class="results-button">
+                <i class="fas fa-chart-bar"></i>
+                Results
+            </a>
+            <button class="expire-button" onclick="confirmExpireRoom()">
+                <i class="fas fa-power-off"></i>
+                Terminate Room
+            </button>
+        </div>
+    </nav>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="messages">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <div class="container">
+        <h1 class="election-title">{{ election_name }}</h1>
+        <form id="votingRoomForm" method="post" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            <div class="candidates-grid">
+                {% for candidate in candidates %}
+                <div class="candidate-card" 
+                     id="card_{{ candidate.id }}" 
+                     data-candidate-id="{{ candidate.id }}">
+                    <div class="candidate-content">
+                        <div class="logo-container" onclick="triggerFileInput('{{ candidate.id }}')">
+                            <div class="placeholder-wrapper" id="preview_{{ candidate.id }}">
+                                <div class="ratio ratio-1x1 d-flex align-items-center justify-content-center">
+                                    {% if candidate.logo %}
+                                        <img src="data:image/jpeg;base64,{{ candidate.logo }}" 
+                                             class="rounded-circle w-100 h-100 object-fit-cover"
+                                             id="candidateImage_{{ candidate.id }}">
+                                    {% else %}
+                                        <i class="bi bi-person-circle text-secondary placeholder-icon"></i>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <input type="file" id="fileInput_{{ candidate.id }}" 
+                                   accept="image/*" class="hidden" 
+                                   name="candidate_logo_{{ loop.index0 }}"
+                                   onchange="previewImage(this, '{{ candidate.id }}')"
+                                   {% if candidate.id %}disabled{% endif %}>
+                        </div>
+                        <input type="text" 
+                               name="candidate_name_{{ loop.index0 }}" 
+                               value="{{ candidate.name }}"
+                               class="candidate-name" 
+                               required
+                               {% if candidate.id %}readonly{% endif %}>
+                    </div>
+                    <div class="remove-candidate" onclick="removeCandidate('{{ candidate.id }}')">
+                        <i class="fas fa-times"></i>
+                    </div>
+                </div>
+                {% endfor %}
+                <div class="candidate-card add-card" onclick="addNewCandidate()">
+                    <div class="add-content">
+                        <i class="fas fa-plus"></i>
+                        <span>Add Candidate</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button type="button" class="submit-button" onclick="submitVotingRoom()">
+                    <i class="fas fa-check-circle"></i>
+                    Create Voting Room
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div id="popupModal" class="popup-modal" style="display: none;">
+        <div class="popup-content">
+            <div class="popup-icon">
+                <!-- Icon will be dynamically added -->
+            </div>
+            <h2 class="popup-title"><!-- Title will be dynamically added --></h2>
+            <p class="popup-message"><!-- Message will be dynamically added --></p>
+            <div class="popup-buttons">
+                <!-- Buttons will be dynamically added -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Room ID Copy Function
+        function copyRoomId() {
+            const roomId = document.getElementById('room-id').textContent;
+            navigator.clipboard.writeText(roomId)
+                .then(() => {
+                    showToast('Room ID copied!');
+                })
+                .catch(err => {
+                    showToast('Failed to copy Room ID');
+                });
+        }
+
+        // Host ID Copy Function
+        function copyHostId() {
+            const hostId = document.getElementById('host-id').textContent;
+            navigator.clipboard.writeText(hostId)
+                .then(() => {
+                    showToast('Host ID copied!');
+                })
+                .catch(err => {
+                    showToast('Failed to copy Host ID');
+                });
+        }
+
+        // Image Preview Function
+        function previewImage(input, index) {
+            const previewContainer = document.getElementById(`preview${index}`);
+            const file = input.files[0];
+            
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewContainer.innerHTML = `
+                        <div class="ratio ratio-1x1">
+                            <img src="${e.target.result}" class="rounded-circle w-100 h-100 object-fit-cover">
+                        </div>
+                    `;
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Remove Image Function
+        function removeImage(index) {
+            const preview = document.getElementById(`preview${index}`);
+            const uploadBtn = document.getElementById(`uploadBtn${index}`);
+            const removeBtn = document.getElementById(`removeBtn${index}`);
+            const fileInput = uploadBtn.querySelector('input[type="file"]');
+            
+            preview.src = '';
+            preview.style.display = 'none';
+            fileInput.value = '';
+            uploadBtn.style.display = 'block';
+            removeBtn.style.display = 'none';
+        }
+
+        // Room Termination Logic
+        function confirmExpireRoom() {
+            showPopup({
+                title: 'Confirm Room Termination',
+                message: 'Are you sure you want to terminate this room? This action cannot be undone.',
+                type: 'warning',
+                buttons: [
+                    {
+                        text: 'Cancel',
+                        type: 'secondary',
+                        onClick: () => closePopup()
+                    },
+                    {
+                        text: 'Terminate Room',
+                        type: 'danger',
+                        onClick: () => forceExpireRoom()
+                    }
+                ]
+            });
+        }
+
+        function forceExpireRoom() {
+            const roomId = '{{ room_id }}'; // Get room_id from template
+            
+            fetch('/expire_room', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    room_id: roomId,
+                    csrf_token: '{{ csrf_token() }}'
+                }),
+                credentials: 'same-origin'
+            })
+            .then(async response => {
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.message || 'Network response was not ok');
+                }
+                return data;
+            })
+            .then(data => {
+                showPopup({
+                    title: 'Success',
+                    message: 'Room terminated successfully. You can now use this Room ID for a new election.',
+                    type: 'success',
+                    buttons: [
+                        {
+                            text: 'Return to Home',
+                            type: 'primary',
+                            onClick: () => {
+                                window.location.href = data.redirect || '/';
+                            }
+                        }
+                    ]
+                });
+            })
+            .catch(error => {
+                showPopup({
+                    title: 'Error',
+                    message: error.message || 'Failed to terminate room',
+                    type: 'error',
+                    buttons: [
+                        {
+                            text: 'OK',
+                            type: 'primary',
+                            onClick: () => closePopup()
+                        }
+                    ]
+                });
+            });
+        }
+
+        // Toast Notification
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        function triggerFileInput(index) {
+            document.getElementById(`fileInput_${index}`).click();
+        }
+
+        function previewImage(input, index) {
+            const previewContainer = document.getElementById(`preview_${index}`);
+            const file = input.files[0];
+            
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewContainer.innerHTML = `
+                        <div class="ratio ratio-1x1">
+                            <img src="${e.target.result}" class="rounded-circle w-100 h-100 object-fit-cover">
+                        </div>
+                    `;
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function showPopup({ 
+            title = '', 
+            message = '', 
+            icon = '', 
+            type = 'info', 
+            buttons = [
+                { text: 'OK', type: 'primary', onClick: () => closePopup() }
+            ]
+        }) {
+            const modal = document.getElementById('popupModal');
+            const content = modal.querySelector('.popup-content');
+            
+            const iconDiv = content.querySelector('.popup-icon');
+            iconDiv.className = `popup-icon ${type}`;
+            iconDiv.innerHTML = icon || getDefaultIcon(type);
+            
+            content.querySelector('.popup-title').textContent = title;
+            content.querySelector('.popup-message').textContent = message;
+            
+            const buttonsContainer = content.querySelector('.popup-buttons');
+            buttonsContainer.innerHTML = '';
+            buttons.forEach(button => {
+                const btn = document.createElement('button');
+                btn.className = `popup-button ${button.type || 'primary'}`;
+                btn.innerHTML = button.text;
+                btn.onclick = button.onClick;
+                buttonsContainer.appendChild(btn);
+            });
+            
+            modal.style.display = 'block';
+        }
+
+        function closePopup() {
+            document.getElementById('popupModal').style.display = 'none';
+        }
+
+        function getDefaultIcon(type) {
+            const icons = {
+                warning: '<i class="fas fa-exclamation-triangle"></i>',
+                error: '<i class="fas fa-times-circle"></i>',
+                success: '<i class="fas fa-check-circle"></i>',
+                info: '<i class="fas fa-info-circle"></i>'
+            };
+            return icons[type] || icons.info;
+        }
+
+        function addNewCandidate() {
+            const grid = document.querySelector('.candidates-grid');
+            const addCard = document.querySelector('.add-card');
+            const uniqueIndex = Date.now();  // Use timestamp for unique ID
+
+            const newCard = document.createElement('div');
+            newCard.className = 'candidate-card';
+            newCard.id = `card_${uniqueIndex}`;
+            
+            newCard.innerHTML = `
+                <div class="candidate-content">
+                    <div class="logo-container" onclick="triggerFileInput('${uniqueIndex}')">
+                        <div class="placeholder-wrapper" id="preview_${uniqueIndex}">
+                            <div class="ratio ratio-1x1 d-flex align-items-center justify-content-center">
+                                <i class="bi bi-person-circle text-secondary placeholder-icon"></i>
+                            </div>
+                        </div>
+                        <input type="file" id="fileInput_${uniqueIndex}" 
+                               accept="image/*" class="hidden" 
+                               name="candidate_logo_${uniqueIndex}"
+                               onchange="previewImage(this, '${uniqueIndex}')"
+                               required>
+                    </div>
+                    <input type="text" 
+                           name="candidate_name_${uniqueIndex}" 
+                           placeholder="Enter Candidate Name"
+                           class="candidate-name" 
+                           required>
+                </div>
+                <div class="remove-candidate" onclick="removeCandidate('${uniqueIndex}')">
+                    <i class="fas fa-times"></i>
+                </div>
+            `;
+            
+            grid.insertBefore(newCard, addCard);
+        }
+
+        function removeCandidate(index) {
+            const cards = document.querySelectorAll('.candidate-card:not(.add-card)');
+            if (cards.length <= 2) {
+                showPopup({
+                    title: 'Cannot Remove',
+                    message: 'A minimum of 2 candidates is required for the voting room.',
+                    type: 'warning'
+                });
+                return false;
+            }
+            
+            // Check if card is an existing candidate
+            const card = document.getElementById(`card_${index}`);
+            if (card.hasAttribute('data-candidate-id')) {
+                showPopup({
+                    title: 'Cannot Remove',
+                    message: 'Cannot remove existing candidates. You can only remove newly added candidates.',
+                    type: 'warning'
+                });
+                return false;
+            }
+            
+            // Remove the card
+            card.remove();
+            
+            // Reorder remaining cards
+            reorderCandidateInputs();
+            return true;
+        }
+
+        function reorderCandidateInputs() {
+            const cards = document.querySelectorAll('.candidate-card:not(.add-card)');
+            let newIndex = 0;
+            
+            cards.forEach(card => {
+                // Only reorder new candidates (ones without data-candidate-id)
+                if (!card.hasAttribute('data-candidate-id')) {
+                    const nameInput = card.querySelector('.candidate-name');
+                    const fileInput = card.querySelector('input[type="file"]');
+                    
+                    // Update input names
+                    if (nameInput) {
+                        nameInput.name = `candidate_name_${newIndex}`;
+                    }
+                    if (fileInput) {
+                        fileInput.name = `candidate_logo_${newIndex}`;
+                    }
+                    newIndex++;
+                }
+            });
+        }
+
+        function submitVotingRoom() {
+            const form = document.getElementById('votingRoomForm');
+            const formData = new FormData();
+            const candidates = document.querySelectorAll('.candidate-card:not(.add-card)');
+
+            // Add CSRF token
+            formData.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
+
+            // Validate minimum candidates
+            if (candidates.length < 2) {
+                showPopup({
+                    title: 'Error',
+                    message: 'Please add at least 2 candidates',
+                    type: 'error'
+                });
+                return;
+            }
+
+            let isValid = true;
+            candidates.forEach((card, index) => {
+                const nameInput = card.querySelector('.candidate-name');
+                const fileInput = card.querySelector('input[type="file"]');
+                const existingImage = card.querySelector('img');
+                const candidateId = card.getAttribute('data-candidate-id');
+                
+                // Validate name
+                if (!nameInput.value.trim()) {
+                    showPopup({
+                        title: 'Error',
+                        message: `Please enter a name for Candidate ${index + 1}`,
+                        type: 'error'
+                    });
+                    isValid = false;
+                    return;
+                }
+
+                formData.append(`candidate_name_${index}`, nameInput.value.trim());
+                
+                // Handle existing candidates
+                if (candidateId) {
+                    formData.append(`candidate_id_${index}`, candidateId);
+                    if (fileInput.files[0]) {
+                        formData.append(`candidate_logo_${index}`, fileInput.files[0]);
+                    } else if (existingImage) {
+                        // Get the base64 part of the image src
+                        const imgSrc = existingImage.src;
+                        const base64Data = imgSrc.includes('base64,') ? 
+                            imgSrc.split('base64,')[1] : null;
+                        if (base64Data) {
+                            formData.append(`candidate_logo_${index}_existing`, base64Data);
+                        }
+                    }
+                } else {
+                    // For new candidates
+                    if (!fileInput.files[0]) {
+                        showPopup({
+                            title: 'Error',
+                            message: `Please upload a logo for Candidate ${index + 1}`,
+                            type: 'error'
+                        });
+                        isValid = false;
+                        return;
+                    }
+                    formData.append(`candidate_logo_${index}`, fileInput.files[0]);
+                }
+            });
+
+            if (!isValid) return;
+
+            fetch('/voting_room', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showPopup({
+                        title: 'Success',
+                        message: 'Voting room updated successfully!',
+                        type: 'success',
+                        buttons: [
+                            {
+                                text: 'OK',
+                                type: 'primary',
+                                onClick: () => {
+                                    window.location.href = '/';
+                                }
+                            }
+                        ]
+                    });
+                } else {
+                    throw new Error(data.message || 'Failed to update voting room');
+                }
+            })
+            .catch(error => {
+                showPopup({
+                    title: 'Error',
+                    message: error.message,
+                    type: 'error'
+                });
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Remove automatic card creation
+            // Let user add cards manually
+        });
+
+        function joinRoom(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            
+            fetch('/join_room', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = data.redirect;
+                } else {
+                    showPopup({
+                        title: 'Error',
+                        message: data.message,
+                        type: 'error'
+                    });
+                }
+            })
+            .catch(error => {
+                showPopup({
+                    title: 'Error',
+                    message: 'Failed to join room',
+                    type: 'error'
+                });
+            });
+        }
+    </script>
+
+    <style>
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 25px;
+            animation: fadeInOut 3s ease-in-out;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translate(-50%, 20px); }
+            15% { opacity: 1; transform: translate(-50%, 0); }
+            85% { opacity: 1; transform: translate(-50%, 0); }
+            100% { opacity: 0; transform: translate(-50%, -20px); }
+        }
+    </style>
+</body>
+</html>

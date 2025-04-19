@@ -1,0 +1,84 @@
+body {
+        background: linear-gradient(135deg, #e3f2fd, #bbdefb, #90caf9);
+}
+
+.navbar {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.navbar-brand img {
+    filter: brightness(0) invert(1);
+}
+
+.card {
+    border: none;
+    margin-bottom: 1.5rem;
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.card-header {
+    font-weight: 500;
+}
+
+.shadow-sm {
+    box-shadow: 0 .125rem .25rem rgba(0,0,0,.075)!important;
+}
+
+.progress {
+    height: 25px;
+    margin-top: 10px;
+    background-color: #e9ecef;
+    border-radius: 0.25rem;
+    overflow: hidden;
+}
+
+.progress-bar {
+    transition: width 0.6s ease;
+    font-size: 0.9rem;
+    padding: 0 10px;
+    display: flex;
+    align-items: center;
+    padding-left: 1rem;
+    color: white;
+}
+
+/* Set width using data attribute */
+.progress-bar[data-width] {
+    width: attr(data-width percentage);
+}
+
+.alert {
+    margin-bottom: 0;
+    border: none;
+    border-radius: 0;
+}
+
+.btn {
+    padding: 8px 20px;
+    border-radius: 5px;
+    transition: all 0.3s;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.form-control {
+    border-radius: 5px;
+    border: 1px solid #dee2e6;
+    padding: 8px 12px;
+}
+
+.form-control:focus {
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    border-color: #80bdff;
+}
+
+.results-container {
+    width: 100%;
+}
