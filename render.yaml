@@ -6,6 +6,6 @@ services:
     startCommand: gunicorn wsgi:app
     envVars:
       - key: PYTHON_VERSION
-        value: 3.8.0
+        value: 3.11.0  # Updated Python version
       - key: PORT
         value: 10000

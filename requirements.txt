@@ -1,7 +1,8 @@
+# Core dependencies
 Flask==3.0.0
 Werkzeug==3.0.0
 numpy==1.26.0
-opencv-python==4.9.0
+opencv-python==4.9.0.80  # Updated to specific version
 face-recognition==1.3.0
 dlib==19.24.2
 Pillow==10.2.0
@@ -10,9 +11,10 @@ python-dotenv==1.0.0
 Flask-Session==0.5.0
 scikit-learn==1.4.0
 pywin32==306
-google-auth-oauthlib==0.4.6
-google-auth==2.27.0
-google-api-python-client==2.0.0
+
+
+
+# Web Forms & Security
 Flask-WTF==1.2.1
 requests==2.31.0
 
@@ -21,9 +23,6 @@ SQLAlchemy==2.0.25
 Flask-SQLAlchemy==3.1.1
 alembic==1.13.1
 sqlite-utils==3.35.1
-
-# WSGI Servers
-
 
 # Production Server
 gunicorn==21.2.0

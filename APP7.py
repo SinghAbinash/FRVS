@@ -36,12 +36,6 @@ import time
 from datetime import datetime, timedelta
 from sklearn.neighbors import KNeighborsClassifier
 from win32com.client import Dispatch
-from google.oauth2.credentials import Credentials
-from google.auth.transport.requests import Request
-from googleapiclient.http import MediaIoBaseUpload
-from googleapiclient.errors import HttpError
-from google_auth_oauthlib.flow import Flow
-from googleapiclient.discovery import build
 from datetime import datetime, timedelta
 import io
 import dlib
