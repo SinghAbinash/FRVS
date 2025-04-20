@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Allowed Voters - Room {{ room_id }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding-top: 70px; /* Adjust for potential header */
+            min-height: 100vh;
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb, #90caf9);
+        }
+
+        .navbar {
+            background-color: #1a237e;
+            padding: 0 1.5rem;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            height: 60px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+
+        .navbar-brand {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: white !important;
+        }
+
+        .nav-link {
+            color: white !important;
+            padding: 0.5rem 1rem;
+            transition: background-color 0.3s;
+            border-radius: 4px;
+        }
+        .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(26, 35, 126, 0.1);
+        }
+
+        .page-title {
+            color: #1a237e;
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 1.8rem;
+            font-weight: 600;
+            border-bottom: 2px solid #e3f2fd;
+            padding-bottom: 1rem;
+        }
+
+        .room-id-highlight {
+            font-weight: bold;
+            color: #1a237e;
+        }
+
+        .voter-list {
+            margin-top: 2rem;
+            list-style: none;
+            padding: 0;
+        }
+
+        .voter-list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.8rem 1rem;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            background-color: #f8f9fa;
+        }
+
+        .voter-mobile {
+            font-family: monospace;
+            font-size: 1rem;
+            color: #333;
+        }
+
+        .remove-voter-btn {
+            background: none;
+            border: none;
+            color: #d32f2f;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: color 0.3s;
+        }
+
+        .remove-voter-btn:hover {
+            color: #a11d1d;
+        }
+
+        .add-voter-form {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .form-control {
+            border-radius: 8px;
+            border-color: #ced4da;
+            padding: 0.75rem 1rem;
+        }
+        .form-control:focus {
+            border-color: #1a237e;
+            box-shadow: 0 0 0 0.25rem rgba(26, 35, 126, 0.25);
+        }
+
+        .btn-primary {
+            background-color: #1a237e;
+            border-color: #1a237e;
+            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+            transition: background-color 0.3s, border-color 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .btn-primary:hover {
+            background-color: #111858;
+            border-color: #111858;
+        }
+
+        /* Popup Modal Styles (similar to votingroom.html) */
+        .popup-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1050; backdrop-filter: blur(5px); }
+        .popup-content { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 8px 32px rgba(26, 35, 126, 0.15); width: 90%; max-width: 400px; text-align: center; }
+        .popup-icon { font-size: 3rem; margin-bottom: 1rem; }
+        .popup-icon.warning { color: #f57c00; } .popup-icon.error { color: #d32f2f; } .popup-icon.success { color: #388e3c; } .popup-icon.info { color: #1976d2; }
+        .popup-title { color: #1a237e; font-size: 1.5rem; margin-bottom: 1rem; }
+        .popup-message { color: #666; margin-bottom: 1.5rem; line-height: 1.5; }
+        .popup-buttons { display: flex; gap: 1rem; justify-content: center; }
+        .popup-button { padding: 0.8rem 1.5rem; border: none; border-radius: 8px; font-size: 0.9rem; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 0.5rem; }
+        .popup-button.primary { background: #1a237e; color: white; } .popup-button.secondary { background: #e3f2fd; color: #1a237e; } .popup-button.danger { background: #d32f2f; color: white; }
+        .popup-button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">E-FRVS</a>
+            <div class="d-flex">
+                <a class="nav-link" href="{{ url_for('voting_room', room_id=room_id, host_id=host_id) }}">
+                    <i class="fas fa-arrow-left"></i> Back to Room
+                </a>
+                 <a class="nav-link" href="{{ url_for('index') }}">
+                    <i class="fas fa-home"></i> Home
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1 class="page-title">Manage Allowed Voters for Room <span class="room-id-highlight">{{ room_id }}</span></h1>
+        
+        <form id="addVoterForm" class="add-voter-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="tel" class="form-control" id="mobileNumber" name="mobile_number" placeholder="Enter voter's mobile number" required pattern="[0-9]{10,15}"> <!-- Adjust pattern as needed -->
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-plus-circle"></i> Add Voter
+            </button>
+        </form>
+
+        <ul class="voter-list" id="voterList">
+            {% if allowed_voters %}
+                {% for voter in allowed_voters %}
+                <li class="voter-list-item" data-mobile="{{ voter.mobile_number }}">
+                    <span class="voter-mobile">{{ voter.mobile_number }}</span>
+                    <button class="remove-voter-btn" onclick="confirmRemoveVoter('{{ voter.mobile_number }}')">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </li>
+                {% endfor %}
+            {% else %}
+                <li id="noVotersMessage" class="text-center text-muted mt-4">No voters added yet.</li>
+            {% endif %}
+        </ul>
+    </div>
+
+    <!-- Popup Modal Structure -->
+    <div id="popupModal" class="popup-modal">
+        <div class="popup-content">
+            <div class="popup-icon"></div>
+            <h2 class="popup-title"></h2>
+            <p class="popup-message"></p>
+            <div class="popup-buttons"></div>
+        </div>
+    </div>
+
+    <script>
+        const ROOM_ID = '{{ room_id }}';
+        const CSRF_TOKEN = '{{ csrf_token() }}';
+
+        // --- Popup Functions (copied from votingroom.html for consistency) ---
+        function showPopup({ title = '', message = '', icon = '', type = 'info', buttons = [{ text: 'OK', type: 'primary', onClick: () => closePopup() }] }) {
+            const modal = document.getElementById('popupModal');
+            const content = modal.querySelector('.popup-content');
+            const iconDiv = content.querySelector('.popup-icon');
+            iconDiv.className = `popup-icon ${type}`;
+            iconDiv.innerHTML = icon || getDefaultIcon(type);
+            content.querySelector('.popup-title').textContent = title;
+            content.querySelector('.popup-message').textContent = message;
+            const buttonsContainer = content.querySelector('.popup-buttons');
+            buttonsContainer.innerHTML = '';
+            buttons.forEach(button => {
+                const btn = document.createElement('button');
+                btn.className = `popup-button ${button.type || 'primary'}`;
+                btn.innerHTML = button.text;
+                btn.onclick = button.onClick;
+                buttonsContainer.appendChild(btn);
+            });
+            modal.style.display = 'block';
+        }
+
+        function closePopup() {
+            document.getElementById('popupModal').style.display = 'none';
+        }
+
+        function getDefaultIcon(type) {
+            const icons = { warning: '<i class="fas fa-exclamation-triangle"></i>', error: '<i class="fas fa-times-circle"></i>', success: '<i class="fas fa-check-circle"></i>', info: '<i class="fas fa-info-circle"></i>' };
+            return icons[type] || icons.info;
+        }
+        // --- End Popup Functions ---
+
+        // --- Add Voter ---
+        document.getElementById('addVoterForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const mobileInput = document.getElementById('mobileNumber');
+            const mobileNumber = mobileInput.value.trim();
+
+            if (!mobileNumber || !mobileInput.checkValidity()) {
+                showPopup({ title: 'Invalid Input', message: 'Please enter a valid mobile number.', type: 'warning' });
+                return;
+            }
+
+            fetch(`/add_voter/${ROOM_ID}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': CSRF_TOKEN
+                },
+                body: JSON.stringify({ mobile_number: mobileNumber, csrf_token: CSRF_TOKEN }),
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    addVoterToList(mobileNumber);
+                    mobileInput.value = ''; // Clear input
+                    showPopup({ title: 'Success', message: data.message || 'Voter added successfully.', type: 'success' });
+                } else {
+                    throw new Error(data.message || 'Failed to add voter.');
+                }
+            })
+            .catch(error => {
+                showPopup({ title: 'Error', message: error.message, type: 'error' });
+            });
+        });
+
+        function addVoterToList(mobileNumber) {
+            const voterList = document.getElementById('voterList');
+            const noVotersMessage = document.getElementById('noVotersMessage');
+            if (noVotersMessage) {
+                noVotersMessage.remove();
+            }
+
+            // Check if voter already exists in the list visually
+            if (document.querySelector(`.voter-list-item[data-mobile="${mobileNumber}"]`)) {
+                return; // Already exists, do nothing visually
+            }
+
+            const listItem = document.createElement('li');
+            listItem.className = 'voter-list-item';
+            listItem.setAttribute('data-mobile', mobileNumber);
+            listItem.innerHTML = `
+                <span class="voter-mobile">${mobileNumber}</span>
+                <button class="remove-voter-btn" onclick="confirmRemoveVoter('${mobileNumber}')">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            `;
+            voterList.appendChild(listItem);
+        }
+
+
+        // --- Remove Voter ---
+        function confirmRemoveVoter(mobileNumber) {
+             showPopup({
+                title: 'Confirm Removal',
+                message: `Are you sure you want to remove the voter with mobile number ${mobileNumber}?`,
+                type: 'warning',
+                buttons: [
+                    { text: 'Cancel', type: 'secondary', onClick: () => closePopup() },
+                    { text: 'Remove Voter', type: 'danger', onClick: () => removeVoter(mobileNumber) }
+                ]
+            });
+        }
+
+        function removeVoter(mobileNumber) {
+            fetch(`/remove_voter/${ROOM_ID}`, {
+                method: 'POST', // Or DELETE, depending on your backend implementation
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': CSRF_TOKEN
+                },
+                body: JSON.stringify({ mobile_number: mobileNumber, csrf_token: CSRF_TOKEN }),
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    removeVoterFromList(mobileNumber);
+                    showPopup({ title: 'Success', message: data.message || 'Voter removed successfully.', type: 'success' });
+                } else {
+                     throw new Error(data.message || 'Failed to remove voter.');
+                }
+            })
+             .catch(error => {
+                 showPopup({ title: 'Error', message: error.message, type: 'error' });
+             });
+        }
+
+        function removeVoterFromList(mobileNumber) {
+            const voterList = document.getElementById('voterList');
+            const listItem = voterList.querySelector(`.voter-list-item[data-mobile="${mobileNumber}"]`);
+            if (listItem) {
+                listItem.remove();
+            }
+             // Check if list is empty and add back the message if needed
+            if (voterList.children.length === 0) {
+                const noVotersMessage = document.createElement('li');
+                noVotersMessage.id = 'noVotersMessage';
+                noVotersMessage.className = 'text-center text-muted mt-4';
+                noVotersMessage.textContent = 'No voters added yet.';
+                voterList.appendChild(noVotersMessage);
+            }
+        }
+
+    </script>
+</body>
+</html> 

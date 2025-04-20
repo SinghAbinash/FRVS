@@ -640,52 +640,93 @@ def b64encode_filter(s):
 @app.route('/voter_login', methods=['GET', 'POST'])
 def voter_login():
     if request.method == 'POST':
-        name = request.form.get('name', '').strip().upper()
-        room_id = request.form.get('room_id', '').strip()
-        aadhar = request.form.get('aadhar', '').strip()
-
-        # Input validation
-        if not name or not re.match(r'^[A-Z\s]+$', name):
-            flash("Please enter a valid name (uppercase letters and spaces only)", "error")
-            return redirect(url_for('voter_login'))
-
-        if not room_id or not re.match(r'^[A-Z0-9]+$', room_id):
-            flash("Please enter a valid Room ID (digits or capital letters only)", "error")
-            return redirect(url_for('voter_login'))
-
-        # Validate Aadhar number - exactly 12 digits
-        if not aadhar or not re.match(r'^\d{12}$', aadhar):
-            flash("Please enter exactly 12 digits for Aadhar number", "error")
-            return redirect(url_for('voter_login'))
-
-        # Check if room exists and is active
-        conn = get_db_connection()
-        try:
-            cursor = conn.cursor()
-            cursor.execute('SELECT * FROM VotingRooms WHERE room_id = ? AND is_active = 1', (room_id,))
-            room = cursor.fetchone()
-            
-            if not room:
-                flash("Invalid or expired Room ID", "error")
-                return redirect(url_for('voter_login'))
-
-            # Store data in session for face recognition step
-            session['name'] = name
-            session['aadhar'] = aadhar
-            session['room_id'] = room_id
-
-            # Redirect to face capture page
-            return redirect(url_for('add_faces'))
-
-        except Exception as e:
-            flash(f"An error occurred: {str(e)}", "error")
-            return redirect(url_for('voter_login'))
-        finally:
-            conn.close()
-
+        # POST logic is now handled by /verify_voter_details via AJAX
+        # Keep this route for GET requests to render the form
+        pass # Or potentially return an error if POST is attempted directly
+        
     # GET request - display the login form
-    return render_template('voterlogin.html')
+    # Ensure csrf_token is available for the form
+    from flask_wtf.csrf import generate_csrf # Import if not already imported at top
+    return render_template('voterlogin.html', csrf_token=generate_csrf())
 
+@app.route('/verify_voter_details', methods=['POST'])
+def verify_voter_details():
+    print("--- Received request for /verify_voter_details ---") # Add log
+    if not request.is_json:
+        print("ERROR: Request is not JSON") # Add log
+        return jsonify({'success': False, 'message': 'Invalid request format'}), 400
+
+    data = request.get_json()
+    print(f"Received data: {data}") # Add log: Print received data
+
+    name = data.get('name', '').strip().upper()
+    room_id = data.get('room_id', '').strip()
+    aadhar = data.get('aadhar', '').strip()
+    mobile_number = data.get('mobile_number', '').strip()
+
+    # --- Server-side Input validation ---
+    if not name or not re.match(r'^[A-Z\s]+$', name):
+        print(f"ERROR: Invalid name format: '{name}'") # Add log
+        return jsonify({'success': False, 'message': 'Invalid name format.'}), 400
+
+    if not room_id or not re.match(r'^[A-Z0-9]+$', room_id):
+        print(f"ERROR: Invalid room_id format: '{room_id}'") # Add log
+        return jsonify({'success': False, 'message': 'Invalid Room ID format.'}), 400
+
+    if not aadhar or not re.match(r'^\d{12}$', aadhar):
+        print(f"ERROR: Invalid aadhar format: '{aadhar}'") # Add log
+        return jsonify({'success': False, 'message': 'Invalid Aadhar number format.'}), 400
+
+    if not mobile_number or not re.match(r'^[0-9]{10,15}$', mobile_number):
+        print(f"ERROR: Invalid mobile_number format: '{mobile_number}'") # Add log
+        return jsonify({'success': False, 'message': 'Invalid mobile number format.'}), 400
+    # --- End Validation ---
+    print("Input validation passed.") # Add log
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        
+        # Check if room exists and is active
+        cursor.execute('SELECT 1 FROM voting_rooms WHERE room_id = ? AND is_active = 1', (room_id,))
+        room = cursor.fetchone()
+        if not room:
+            return jsonify({'success': False, 'message': 'Invalid or expired Room ID'}), 404
+
+        # --- Conditional Mobile Number Check ---
+        # 1. Check if the host has added ANY allowed voters for this room
+        cursor.execute("SELECT COUNT(*) FROM AllowedVoters WHERE room_id = ?", (room_id,))
+        allowed_voter_count = cursor.fetchone()[0]
+        print(f"DEBUG: Allowed voter count for room {room_id}: {allowed_voter_count}") # Debug log
+
+        # 2. Only check the specific mobile number if the host has added at least one
+        if allowed_voter_count > 0:
+            print(f"DEBUG: Checking specific mobile number {mobile_number}...") # Debug log
+            cursor.execute("SELECT 1 FROM AllowedVoters WHERE room_id = ? AND mobile_number = ?", (room_id, mobile_number))
+            allowed = cursor.fetchone()
+            if not allowed:
+                print(f"ERROR: Mobile number {mobile_number} not found in allowed list for room {room_id}.") # Debug log
+                return jsonify({'success': False, 'message': f'Mobile number {mobile_number} is not registered for Room {room_id}'}), 403 # 403 Forbidden
+            print(f"DEBUG: Mobile number {mobile_number} is allowed.") # Debug log
+        else:
+            print(f"DEBUG: No allowed voters configured for room {room_id}, skipping specific mobile number check.") # Debug log
+        # --- End Conditional Mobile Number Check ---
+
+        # Optional: Check if Aadhar is already registered for this room (prevent re-registration attempt)
+        cursor.execute("SELECT 1 FROM Users WHERE unique_id_number = ? AND room_id = ?", (aadhar, room_id))
+        existing_registration = cursor.fetchone()
+        if existing_registration:
+            return jsonify({'success': False, 'message': 'This Aadhar number is already registered for this room.'}), 409 # 409 Conflict
+
+        # All checks passed
+        return jsonify({'success': True, 'message': 'Details verified successfully.'}), 200
+
+    except Exception as e:
+        print(f"Error in verify_voter_details: {str(e)}")
+        return jsonify({'success': False, 'message': 'An internal server error occurred.'}), 500
+    finally:
+        if conn:
+            conn.close()
 
 
     
@@ -1226,15 +1267,12 @@ def verify_face_storage(user_id):
         if result and result[0]:
             try:
                 # Convert bytes back to numpy array
-                face_encoding = np.frombuffer(result[0], dtype=np.float64)
+                stored_encoding = np.frombuffer(result[0], dtype=np.float64).reshape(-1)
                 
-                # Reshape the array to match face encoding dimensions
-                face_encoding = face_encoding.reshape(-1)
+                print(f"Retrieved face encoding of type: {type(stored_encoding)}")
+                print(f"Retrieved face encoding shape: {stored_encoding.shape}")
                 
-                print(f"Retrieved face encoding of type: {type(face_encoding)}")
-                print(f"Retrieved face encoding shape: {face_encoding.shape}")
-                
-                if isinstance(face_encoding, np.ndarray) and face_encoding.shape[0] == 128:
+                if isinstance(stored_encoding, np.ndarray) and stored_encoding.shape[0] == 128:
                     return True
                     
                 print("Invalid face encoding shape or type")
@@ -1643,7 +1681,11 @@ csrf = CSRFProtect(app)
 def check_session():
     if request.endpoint and request.endpoint != 'static':
         # Exclude static files and routes that don't require host session
-        excluded_routes = ['host_login', 'index', 'voter_login', 'vote', 'process_id_card', 'cast_vote']
+        excluded_routes = [
+            'host_login', 'index', 'voter_login', 'vote', 
+            'process_id_card', 'cast_vote', 'verify_face', # Added verify_face
+            'votecasted', 'flash_message', 'video_feed'  # Add other public routes too
+        ]
         if request.endpoint not in excluded_routes:
             if 'host_id' not in session:
                 flash('Your session has expired. Please login again.', 'error')
@@ -1748,6 +1790,18 @@ def init_db():
             face_encoding BLOB NOT NULL,
             capture_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES Users(user_id)
+        )
+    ''')
+
+    # Add AllowedVoters table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS AllowedVoters (
+            allowed_voter_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            room_id TEXT NOT NULL,
+            mobile_number TEXT NOT NULL,
+            added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(room_id, mobile_number),
+            FOREIGN KEY (room_id) REFERENCES voting_rooms(room_id)
         )
     ''')
 
@@ -1917,12 +1971,19 @@ def verify_face():
         data = request.get_json()
         image_data = data['image_data']
         user_id = data['user_id']
-        previous_face_location = data.get('previous_location', None)  # Track face movement
         
         # Convert base64 image to OpenCV format
         encoded_data = image_data.split(',')[1]
         nparr = np.frombuffer(base64.b64decode(encoded_data), np.uint8)
         frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+        # --- Add Logging ---
+        if frame is None:
+            print("VERIFY_FACE ERROR: Failed to decode frame from base64 data.")
+            return jsonify({'success': False, 'message': 'Error decoding image', 'closeVideo': True}), 400
+        else:
+            print(f"VERIFY_FACE INFO: Received frame shape: {frame.shape}")
+        # --- End Logging ---
 
         # Get stored face encoding
         stored_encoding = None
@@ -1939,6 +2000,7 @@ def verify_face():
             
             result = cursor.fetchone()
             if result and result[0]:
+                # Convert raw bytes back to numpy array using frombuffer
                 stored_encoding = np.frombuffer(result[0], dtype=np.float64).reshape(-1)
         finally:
             cursor.close()
@@ -1954,47 +2016,19 @@ def verify_face():
 
         # Convert frame to RGB for face_recognition
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        faces = face_recognition.face_locations(rgb)
+        print("VERIFY_FACE INFO: Trying to detect face locations using default HOG model...") # Log model
+        # Revert back to the default HOG model (faster)
+        faces = face_recognition.face_locations(rgb) 
+        print(f"VERIFY_FACE INFO: Detected {len(faces)} face(s) using HOG.") # Log model
         encodings = face_recognition.face_encodings(rgb, faces)
 
         if not faces:
+            print("VERIFY_FACE WARN: No face detected in the frame.") # Log specific reason
             return jsonify({
                 'success': False,
                 'message': 'No face detected',
-                'closeVideo': False
+                'closeVideo': False  # Keep the verification loop running
             })
-
-        # Get current face location (using the first face detected)
-        current_face_location = faces[0]  # (top, right, bottom, left)
-        
-        # Calculate face center
-        face_center = (
-            (current_face_location[3] + current_face_location[1]) // 2,  # x coordinate
-            (current_face_location[0] + current_face_location[2]) // 2   # y coordinate
-        )
-
-        # Initialize movement detection variables
-        movement_detected = False
-        movement_threshold = 30  # Adjust this value based on testing
-        movement_text = "Move your face slightly"
-
-        if previous_face_location:
-            # Convert previous_face_location from string back to tuple
-            prev_loc = eval(previous_face_location)
-            prev_center = (
-                (prev_loc[3] + prev_loc[1]) // 2,
-                (prev_loc[0] + prev_loc[2]) // 2
-            )
-            
-            # Calculate movement distance
-            movement_distance = np.sqrt(
-                (face_center[0] - prev_center[0])**2 + 
-                (face_center[1] - prev_center[1])**2
-            )
-            
-            if movement_distance > movement_threshold:
-                movement_detected = True
-                movement_text = "Movement Detected!"
 
         match_found = False
         for face_encoding, face_location in zip(encodings, faces):
@@ -2004,39 +2038,31 @@ def verify_face():
             # Get face location coordinates
             top, right, bottom, left = face_location
             
-            if result[0] and movement_detected:
+            if result[0]:
                 match_found = True
                 # Draw green rectangle for match
                 cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
-                cv2.putText(frame, f"MATCHED - {movement_text}", (left, top - 10),
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+                # Draw text inside the bottom of the rectangle
+                cv2.putText(frame, "MATCHED", (left + 6, bottom - 6),
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2) 
             else:
-                # Draw red rectangle for non-match or no movement
+                # Draw red rectangle for non-match
                 cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
-                cv2.putText(frame, f"NOT VERIFIED - {movement_text}", (left, top - 10),
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
+                 # Draw text inside the bottom of the rectangle
+                cv2.putText(frame, "NOT VERIFIED", (left + 6, bottom - 6),
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 
-                # Draw movement guide arrows
-                center_x = (left + right) // 2
-                center_y = (top + bottom) // 2
-                arrow_length = 50
-                cv2.arrowedLine(frame, (center_x, center_y), (center_x + arrow_length, center_y), 
-                               (255, 255, 255), 2)
-                cv2.arrowedLine(frame, (center_x, center_y), (center_x - arrow_length, center_y), 
-                               (255, 255, 255), 2)
-
-        # Convert processed frame back to base64
+        # Convert processed frame to base64
         _, buffer = cv2.imencode('.jpg', frame)
         processed_image = base64.b64encode(buffer).decode('utf-8')
 
         return jsonify({
             'success': True,
-            'message': 'Face verified successfully' if match_found else 'Keep moving face slightly',
+            'message': 'Face verified successfully' if match_found else 'Face not verified',
             'matched': match_found,
-            'movement_detected': movement_detected,
             'processedImage': f'data:image/jpeg;base64,{processed_image}',
-            'previous_location': str(current_face_location),  # Store current location for next request
-            'closeVideo': match_found and movement_detected
+            'closeVideo': match_found,
+            'redirect': url_for('votecasted') if match_found else None
         })
             
     except Exception as e:
@@ -2047,6 +2073,122 @@ def verify_face():
             'redirect': url_for('index'),
             'closeVideo': True
         }), 500
+
+
+@app.route('/manage_voters/<room_id>')
+def manage_voters(room_id):
+    # Ensure host is logged in and accessing their own room
+    if 'host_id' not in session or 'room_id' not in session or session['room_id'] != room_id:
+        flash('Unauthorized access or session expired.', 'error')
+        return redirect(url_for('index')) # Or host login page
+
+    host_id = session['host_id']
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Fetch room details (optional, but good for verification)
+        cursor.execute("SELECT room_id, host_id FROM voting_rooms WHERE room_id = ? AND host_id = ?", (room_id, host_id))
+        room = cursor.fetchone()
+        if not room:
+            flash('Room not found or you do not have permission.', 'error')
+            return redirect(url_for('index'))
+
+        # Fetch allowed voters for this room
+        cursor.execute("SELECT mobile_number FROM AllowedVoters WHERE room_id = ? ORDER BY added_at", (room_id,))
+        allowed_voters = cursor.fetchall()
+
+        return render_template('allowed_voters.html',
+                                room_id=room_id,
+                                host_id=host_id,
+                                allowed_voters=allowed_voters)
+    except Exception as e:
+        print(f"Error fetching allowed voters: {str(e)}")
+        flash('An error occurred while loading the voter management page.', 'error')
+        # Redirect back to the main voting room page might be better here
+        return redirect(url_for('voting_room'))
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/add_voter/<room_id>', methods=['POST'])
+def add_voter(room_id):
+    if 'host_id' not in session or session.get('room_id') != room_id:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+
+    if not request.is_json:
+        return jsonify({'success': False, 'message': 'Invalid request format'}), 400
+
+    data = request.get_json()
+    mobile_number = data.get('mobile_number', '').strip()
+
+    # Basic validation (you might want more robust validation)
+    if not re.match(r'^[0-9]{10,15}$', mobile_number):
+        return jsonify({'success': False, 'message': 'Invalid mobile number format.'}), 400
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Check if room belongs to host
+        cursor.execute("SELECT 1 FROM voting_rooms WHERE room_id = ? AND host_id = ?", (room_id, session['host_id']))
+        if not cursor.fetchone():
+            return jsonify({'success': False, 'message': 'Room not found or permission denied'}), 404
+
+        try:
+            cursor.execute("INSERT INTO AllowedVoters (room_id, mobile_number) VALUES (?, ?)", (room_id, mobile_number))
+            conn.commit()
+            return jsonify({'success': True, 'message': 'Voter added successfully.'})
+        except sqlite3.IntegrityError: # Handles UNIQUE constraint
+            conn.rollback()
+            return jsonify({'success': False, 'message': 'Mobile number already exists for this room.'}), 409
+
+    except Exception as e:
+        print(f"Error adding voter: {str(e)}")
+        return jsonify({'success': False, 'message': 'An internal error occurred.'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/remove_voter/<room_id>', methods=['POST'])
+def remove_voter(room_id):
+    if 'host_id' not in session or session.get('room_id') != room_id:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+
+    if not request.is_json:
+        return jsonify({'success': False, 'message': 'Invalid request format'}), 400
+
+    data = request.get_json()
+    mobile_number = data.get('mobile_number', '').strip()
+
+    if not mobile_number:
+         return jsonify({'success': False, 'message': 'Mobile number is required.'}), 400
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Check if room belongs to host
+        cursor.execute("SELECT 1 FROM voting_rooms WHERE room_id = ? AND host_id = ?", (room_id, session['host_id']))
+        if not cursor.fetchone():
+             return jsonify({'success': False, 'message': 'Room not found or permission denied'}), 404
+
+        cursor.execute("DELETE FROM AllowedVoters WHERE room_id = ? AND mobile_number = ?", (room_id, mobile_number))
+        conn.commit()
+
+        if cursor.rowcount > 0:
+            return jsonify({'success': True, 'message': 'Voter removed successfully.'})
+        else:
+            return jsonify({'success': False, 'message': 'Voter not found for this room.'}), 404
+
+    except Exception as e:
+        print(f"Error removing voter: {str(e)}")
+        conn.rollback() # Rollback on error
+        return jsonify({'success': False, 'message': 'An internal error occurred.'}), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 # Add this to your app initialization
@@ -2083,5 +2225,4 @@ if __name__ == '__main__':
     finally:
         if 'cleanup' in globals():
             cleanup()
-
 

@@ -85,8 +85,7 @@ def init_db():
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (room_id) REFERENCES voting_rooms(room_id),
                 FOREIGN KEY (candidate_id) REFERENCES Candidates(candidate_id),
-                FOREIGN KEY (voter_id) REFERENCES Users(user_id),
-                UNIQUE(voter_id, room_id)
+                FOREIGN KEY (voter_id) REFERENCES Users(user_id)
             )
         ''')
 
@@ -98,6 +97,18 @@ def init_db():
                 face_encoding BLOB NOT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES Users(user_id)
+            )
+        ''')
+
+        # Add AllowedVoters table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS AllowedVoters (
+                allowed_voter_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                room_id TEXT NOT NULL,
+                mobile_number TEXT NOT NULL,
+                added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(room_id, mobile_number),
+                FOREIGN KEY (room_id) REFERENCES voting_rooms(room_id)
             )
         ''')
 

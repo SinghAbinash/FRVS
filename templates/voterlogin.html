@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <title>Voter Login - FRVS</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
@@ -19,7 +20,7 @@
         
         .container {
             background: rgba(255, 255, 255, 0.95);
-            padding: 2rem 3rem;  /* Changed top/bottom padding to 2rem */
+            padding: 1.5rem 3rem;  /* Reduced top/bottom padding from 2rem */
             border-radius: 20px;
             box-shadow: 0 8px 32px rgba(26, 35, 126, 0.1);
             backdrop-filter: blur(10px);
@@ -32,18 +33,18 @@
         .logo-container {
             display: flex;
             justify-content: center;
-            margin: 0.25rem 0;  /* Reduced from 0.5rem to 0.25rem */
+            margin: 0.1rem 0;  /* Reduced vertical margin */
         }
         .logo {
-            width: 170px;
+            width: 150px; /* Slightly smaller logo */
             height: auto;
             object-fit: contain;
             margin-top: -0.5rem;  /* Added negative margin to pull logo up */
         }
         h1 {
             color: #1a237e;
-            margin-bottom: 1rem;
-            font-size: 2rem;
+            margin-bottom: 0.8rem; /* Reduced margin */
+            font-size: 1.8rem; /* Slightly smaller font */
             font-weight: 600;
         }
         .form-section {
@@ -55,7 +56,7 @@
             display: block;
         }
         .form-group {
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem; /* Reduced margin */
             text-align: left;
         }
         label {
@@ -82,7 +83,7 @@
         button {
             background-color: #1a237e;
             color: white;
-            padding: 1rem 2rem;
+            padding: 0.8rem 2rem; /* Reduced vertical padding */
             border: none;
             border-radius: 10px;
             font-size: 1rem;
@@ -120,7 +121,7 @@
         }
         .back-link {
             display: inline-block;
-            margin-top: 0.25rem;  /* Reduced from 0.5rem to 0.25rem */
+            margin-top: 0.1rem;  /* Reduced margin */
             margin-bottom: 0.5rem;
             color: #1a237e;
             text-decoration: none;
@@ -400,6 +401,15 @@
                            oninput="this.value = this.value.replace(/\D/g, '').substring(0, 12)">
                 </div>
                 <div class="form-group">
+                    <label for="mobile_number">Mobile Number</label>
+                    <input type="tel" 
+                           id="mobile_number" 
+                           name="mobile_number" 
+                           required 
+                           pattern="[0-9]{10,15}" 
+                           placeholder="Enter your mobile number">
+                </div>
+                <div class="form-group">
                     <label for="room_id">Room ID</label>
                     <input type="text" id="room_id" name="room_id" required pattern="[A-Z0-9]+" 
                            placeholder="Enter Room ID">
@@ -412,7 +422,7 @@
         <div id="faceRegForm" class="form-section">
             <div class="upload-container">
                 <form action="{{ url_for('process_id_card') }}" method="POST" id="idCardForm" enctype="multipart/form-data">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                     <input type="hidden" name="name" id="hiddenName">
                     <input type="hidden" name="aadhar" id="hiddenAadhar">
                     <input type="hidden" name="room_id" id="hiddenRoomId">
@@ -456,32 +466,93 @@
     <script>
         // Update the voter login form submit handler
         document.getElementById('voterLoginForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            // Validate Aadhar number
+            e.preventDefault(); // Prevent default form submission
+            const submitButton = this.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Verifying...';
+
+            // Get form values
+            const nameInput = document.getElementById('name');
             const aadharInput = document.getElementById('aadhar');
-            const cleanAadhar = aadharInput.value.replace(/\s/g, '');
-            if (!/^\d{12}$/.test(cleanAadhar)) {
-                aadharInput.setCustomValidity('Please enter a valid 12-digit Aadhar number');
+            const mobileInput = document.getElementById('mobile_number');
+            const roomInput = document.getElementById('room_id');
+
+            const name = nameInput.value.trim();
+            const aadhar = aadharInput.value.replace(/\s/g, ''); // Clean Aadhar
+            const mobileNumber = mobileInput.value.trim();
+            const roomId = roomInput.value.trim();
+
+            // Client-side validation (basic)
+            if (!name || !/^[A-Z\s]+$/.test(name)) {
+                showAlert('Please enter a valid name (uppercase letters and spaces only)');
+                submitButton.disabled = false;
+                submitButton.textContent = 'Continue to Face Registration';
                 return;
             }
-            
-            // Get form values
-            const name = document.getElementById('name').value;
-            const roomId = document.getElementById('room_id').value;
+            if (!/^\d{12}$/.test(aadhar)) {
+                showAlert('Please enter a valid 12-digit Aadhar number');
+                submitButton.disabled = false;
+                submitButton.textContent = 'Continue to Face Registration';
+                return;
+            }
+            if (!/^[0-9]{10,15}$/.test(mobileNumber)) {
+                showAlert('Please enter a valid mobile number (10-15 digits)');
+                submitButton.disabled = false;
+                submitButton.textContent = 'Continue to Face Registration';
+                return;
+            }
+            if (!/^[A-Z0-9]+$/.test(roomId)) {
+                showAlert('Please enter a valid Room ID (digits or capital letters only)');
+                submitButton.disabled = false;
+                submitButton.textContent = 'Continue to Face Registration';
+                return;
+            }
 
-            // Set hidden field values
-            document.getElementById('hiddenName').value = name;
-            document.getElementById('hiddenAadhar').value = cleanAadhar;
-            document.getElementById('hiddenRoomId').value = roomId;
+            // Send data to backend for verification
+            fetch('{{ url_for("verify_voter_details") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest', // Important for Flask CSRF if applicable
+                    // Read token from meta tag and add header
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({ 
+                    name: name,
+                    aadhar: aadhar,
+                    mobile_number: mobileNumber,
+                    room_id: roomId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Verification successful, proceed to next step
+                    document.getElementById('hiddenName').value = name;
+                    document.getElementById('hiddenAadhar').value = aadhar;
+                    document.getElementById('hiddenRoomId').value = roomId;
 
-            // Hide logo container and back link
-            document.getElementById('logoContainer').style.display = 'none';
-            document.getElementById('backLink').style.display = 'none';
+                    // Hide logo container and back link
+                    document.getElementById('logoContainer').style.display = 'none';
+                    document.getElementById('backLink').style.display = 'none';
 
-            // Switch forms
-            document.getElementById('loginForm').classList.remove('active');
-            document.getElementById('faceRegForm').classList.add('active');
+                    // Switch forms
+                    document.getElementById('loginForm').classList.remove('active');
+                    document.getElementById('faceRegForm').classList.add('active');
+                } else {
+                    // Verification failed, show error message
+                    showAlert(data.message || 'Verification failed. Please check your details.', 'error');
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Continue to Face Registration';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('An error occurred during verification. Please try again.', 'error');
+                submitButton.disabled = false;
+                submitButton.textContent = 'Continue to Face Registration';
+            });
         });
 
         // Preview uploaded image

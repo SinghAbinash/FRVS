@@ -474,9 +474,10 @@
             margin: 1.5rem 0;
             position: relative;
             width: 100%;
-            height: 480px;  /* Fixed height */
+            aspect-ratio: 640 / 480;
+            max-height: 70vh;
+            background: #111;
             border-radius: 10px;
-            background: #f5f5f5;
             overflow: hidden;
         }
 
@@ -484,9 +485,10 @@
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+            width: 100%; /* Fill container */
+            height: 100%; /* Fill container */
+            object-fit: contain; /* Maintain aspect ratio */
+            transition: opacity 0.3s ease; /* Add transition for smooth hiding/showing */
         }
 
         #videoCanvas {
@@ -674,7 +676,13 @@
 
         // Add this function for face verification
         async function verifyFaceBeforeVote() {
+            // Declare variables needed across scopes with let
+            let verificationInterval = null;
+            let stream = null;
+            let verificationDialogElement = null; // Use a different name to avoid confusion with function scope
+
             return new Promise((resolve) => {
+                // Create dialog element (local const is fine here)
                 const verificationDialog = document.createElement('div');
                 verificationDialog.className = 'face-verification-dialog';
                 verificationDialog.innerHTML = `
@@ -686,18 +694,42 @@
                         </div>
                         <div class="verification-status">
                             <i class="fas fa-spinner fa-spin"></i>
-                            <span>Please move your face slightly from side to side...</span>
+                            <span>Position your face in the frame...</span>
                         </div>
                     </div>
                 `;
                 document.body.appendChild(verificationDialog);
+                verificationDialogElement = verificationDialog; // Assign to outer scope variable
 
-                let previousLocation = null;
                 const video = document.getElementById('videoFeed');
                 const canvas = document.getElementById('videoCanvas');
-                canvas.width = 640;
-                canvas.height = 480;
                 const ctx = canvas.getContext('2d');
+
+                // --- Initially hide canvas --- 
+                if (canvas) canvas.style.opacity = '0';
+                if (video) video.style.opacity = '1';
+                let firstProcessedFrameDrawn = false; // Flag to track if canvas is active
+                // --- End initial hide --- 
+
+                // Helper function for cleanup
+                const cleanupVerification = () => {
+                    console.log("Running cleanupVerification...");
+                    if (verificationInterval) {
+                        clearInterval(verificationInterval);
+                        verificationInterval = null;
+                        console.log("Interval cleared by cleanup.");
+                    }
+                    if (stream) {
+                        stream.getTracks().forEach(track => track.stop());
+                        stream = null;
+                        console.log("Stream stopped by cleanup.");
+                    }
+                    if (verificationDialogElement) {
+                        verificationDialogElement.remove();
+                        verificationDialogElement = null;
+                        console.log("Dialog removed by cleanup.");
+                    }
+                };
 
                 navigator.mediaDevices.getUserMedia({ 
                     video: {
@@ -706,82 +738,156 @@
                         facingMode: "user"
                     }
                 })
-                .then(stream => {
+                .then(streamResult => {
+                    stream = streamResult; // Assign to outer scope variable
+                    if (!video) {
+                        console.error("Video element not found after getUserMedia");
+                        cleanupVerification();
+                        resolve(false);
+                        return;
+                    }
                     video.srcObject = stream;
-                    video.play();
+                    // --- Event listener to set canvas size --- 
+                    video.onloadedmetadata = () => {
+                        console.log(`Video dimensions: ${video.videoWidth}x${video.videoHeight}`);
+                        if (canvas) {
+                            canvas.width = video.videoWidth;
+                            canvas.height = video.videoHeight;
+                            console.log(`Canvas dimensions set to: ${canvas.width}x${canvas.height}`);
+                        }
+                    };
+                    // --- End event listener --- 
+                    video.play().catch(playError => {
+                         console.error("Video play error:", playError);
+                         cleanupVerification();
+                         resolve(false);
+                    });
 
-                    const verificationInterval = setInterval(() => {
-                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                        const imageData = canvas.toDataURL('image/jpeg', 0.9);
+                    // Update status after camera starts
+                    const initialStatusText = verificationDialogElement?.querySelector('.verification-status span');
+                    if (initialStatusText) initialStatusText.textContent = 'Verifying face...';
 
-                        fetch('/verify_face', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRFToken': '{{ csrf_token() }}'
-                            },
-                            body: JSON.stringify({
-                                image_data: imageData,
-                                user_id: '{{ session.user_id }}',
-                                previous_location: previousLocation
-                            })
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.processedImage) {
-                                const img = new Image();
-                                img.onload = () => {
-                                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                                };
-                                img.src = data.processedImage;
+                    // --- Add Delay Before Starting Interval ---
+                    setTimeout(() => {
+                        if (!stream) return; // Don't start if stream was already stopped
+                        console.log("Starting verification interval after delay...");
+                        verificationInterval = setInterval(() => {
+                            if (!canvas || !ctx) {
+                                 console.error("Canvas or context lost inside interval");
+                                 cleanupVerification();
+                                 resolve(false); // Resolve false if canvas disappears
+                                 return;
                             }
+                            try {
+                                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                                const imageData = canvas.toDataURL('image/jpeg', 0.9);
 
-                            // Update previous location for next request
-                            previousLocation = data.previous_location;
+                                fetch('/verify_face', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRFToken': '{{ csrf_token() }}'
+                                    },
+                                    body: JSON.stringify({
+                                        image_data: imageData,
+                                        user_id: '{{ session.user_id }}'
+                                    })
+                                })
+                                .then(response => {
+                                    if (!response.ok) {
+                                        throw new Error(`HTTP error! status: ${response.status}`);
+                                    }
+                                    return response.json();
+                                })
+                                .then(data => {
+                                    const statusText = verificationDialogElement?.querySelector('.verification-status span');
+                                    const statusIcon = verificationDialogElement?.querySelector('.verification-status i');
 
-                            const statusText = document.querySelector('.verification-status span');
-                            if (data.movement_detected) {
-                                statusText.textContent = 'Movement detected! Verifying face...';
-                                statusText.style.color = '#4CAF50';
-                            } else {
-                                statusText.textContent = 'Please move your face slightly...';
-                                statusText.style.color = '#666';
+                                    if (data.processedImage && verificationDialogElement) {
+                                        const img = new Image();
+                                        img.onload = () => {
+                                            // Ensure ctx is still valid before drawing
+                                            if (ctx) { 
+                                                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                                                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                                                // --- Flip opacity on first processed frame --- 
+                                                if (!firstProcessedFrameDrawn) {
+                                                    if (canvas) canvas.style.opacity = '1';
+                                                    if (video) video.style.opacity = '0';
+                                                    firstProcessedFrameDrawn = true;
+                                                    console.log("Canvas shown, Video hidden (opacity)");
+                                                }
+                                                // --- End flip opacity --- 
+                                            }
+                                        };
+                                        img.onerror = () => console.error("Error loading processed image");
+                                        img.src = data.processedImage;
+                                    }
+
+                                    if (statusText && data.message) statusText.textContent = data.message;
+                                    if (statusIcon) {
+                                        if (data.matched === true) {
+                                            statusIcon.className = 'fas fa-check-circle';
+                                            if(statusText) statusText.style.color = '#4CAF50';
+                                        } else if (data.matched === false) {
+                                            statusIcon.className = 'fas fa-times-circle';
+                                             if(statusText) statusText.style.color = '#f44336';
+                                        } else {
+                                            statusIcon.className = 'fas fa-spinner fa-spin';
+                                            if(statusText) statusText.style.color = '#666';
+                                        }
+                                    }
+
+                                    // --- Log the received data and condition check --- 
+                                    console.log("Received data:", JSON.stringify(data));
+                                    const shouldStop = data.closeVideo || (data.success && data.matched);
+                                    console.log(`Should stop condition met: ${shouldStop}`);
+                                    // --- End Log --- 
+
+                                    // --- Check for Non-Match (Redirect after 1s timer) ---
+                                    if (data.success === true && data.matched === false) {
+                                        console.log("verifyFaceBeforeVote: Non-match detected. Starting 1s redirect timer...");
+                                        // Status text/icon are already updated by the code above this block
+
+                                        // Start 1-second timer to redirect
+                                        setTimeout(() => {
+                                            console.log("Non-match timer expired. Redirecting...");
+                                            cleanupVerification(); // Stop video, clear interval, remove dialog
+                                            window.location.href = '/'; // Redirect to index
+                                            resolve(false); // Resolve outer promise as false
+                                        }, 1000); // 1000ms = 1 second
+
+                                        return; // Exit the .then() block early, wait for timer
+                                    }
+                                    // --- End Check for Non-Match ---
+
+                                    // This condition now only handles SUCCESSFUL match
+                                    if (shouldStop) { // Use the variable for clarity (Handles SUCCESSFUL match)
+                                        console.log("verifyFaceBeforeVote: Success/Stop condition met.");
+                                        cleanupVerification();
+                                        console.log("verifyFaceBeforeVote: Resolving promise with true...");
+                                        resolve(true);
+                                        console.log("verifyFaceBeforeVote: Promise resolved.");
+                                    }
+                                })
+                                .catch(fetchError => {
+                                    console.error('Face verification fetch error:', fetchError);
+                                    cleanupVerification();
+                                    resolve(false); // Resolve false on fetch error
+                                });
+                            } catch (intervalError) {
+                                 console.error("Error inside verification interval:", intervalError);
+                                 cleanupVerification();
+                                 resolve(false); // Resolve false on interval error
                             }
-
-                            if (data.closeVideo || (data.success && data.matched && data.movement_detected)) {
-                                clearInterval(verificationInterval);
-                                stream.getTracks().forEach(track => track.stop());
-                                verificationDialog.remove();
-
-                                if (!data.success || !data.matched) {
-                                    showAlert(
-                                        'Verification Failed',
-                                        'Face verification failed or no movement detected. Redirecting...',
-                                        'error'
-                                    ).then(() => {
-                                        window.location.href = data.redirect || '/';
-                                    });
-                                }
-                                resolve(data.success && data.matched && data.movement_detected);
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Face verification error:', error);
-                            clearInterval(verificationInterval);
-                            stream.getTracks().forEach(track => track.stop());
-                            verificationDialog.remove();
-                            window.location.href = '/';
-                            resolve(false);
-                        });
-                    }, 1000);
+                        }, 1000); // Interval duration
+                    }, 500); // 500ms delay
                 })
-                .catch(error => {
-                    console.error('Camera access error:', error);
+                .catch(getUserMediaError => {
+                    console.error('Camera access error:', getUserMediaError);
                     alert('Unable to access camera. Please ensure camera permissions are granted.');
-                    verificationDialog.remove();
-                    window.location.href = '/';
-                    resolve(false);
+                    cleanupVerification();
+                    resolve(false); // Resolve false if camera fails
                 });
             });
         }
@@ -823,20 +929,18 @@
                 selectedCandidate.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
 
                 // Start face verification at time of vote
+                console.log("Submit Handler: Awaiting face verification..."); // Log before await
                 const faceVerified = await verifyFaceBeforeVote();
+                console.log(`Submit Handler: Face verification awaited. Result: ${faceVerified}`); // Log after await
                 
                 if (!faceVerified) {
-                    await showAlert(
-                        'Verification Failed',
-                        'Face verification failed. Please try again.',
-                        'error'
-                    );
                     selectedCandidate.disabled = false;
-                    selectedCandidate.innerHTML = `<i class="fas fa-vote-yea me-2"></i>Vote for ${selectedCandidate.textContent.trim()}`;
+                    selectedCandidate.innerHTML = `<i class="fas fa-vote-yea me-2"></i>Vote for ${selectedCandidate.textContent.trim().replace('Vote for ', '')}`;
                     return;
                 }
 
                 // Submit the vote after successful verification
+                console.log("Submit Handler: Proceeding to cast vote (fetch)..." ); // Log before fetch
                 const response = await fetch(this.action, {
                     method: 'POST',
                     body: formData,
@@ -855,7 +959,7 @@
                             result.message,
                             'success'
                         );
-                        window.location.href = result.redirect;
+                        window.location.href = "{{ url_for('votecasted') }}";
                     } else {
                         throw new Error(result.message);
                     }
@@ -874,7 +978,7 @@
                     'error'
                 );
                 selectedCandidate.disabled = false;
-                selectedCandidate.innerHTML = `<i class="fas fa-vote-yea me-2"></i>Vote for ${selectedCandidate.textContent.trim()}`;
+                selectedCandidate.innerHTML = `<i class="fas fa-vote-yea me-2"></i>Vote for ${selectedCandidate.textContent.trim().replace('Vote for ', '')}`;
             }
         });
 
